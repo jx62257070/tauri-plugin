@@ -4,14 +4,14 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-package%20manager-orange)](https://pnpm.io/)
 
-**WHF 股票看板官方插件的源码与安装包仓库** —— 面向使用 WHF 股票看板的用户，以及想改插件、提插件的贡献者。
+**WHF 股票看板**官方插件的源码与安装包仓库 —— 面向使用 [WHF 股票看板](https://github.com/WHF293/whf-stock-board) 的用户，以及想改插件、提插件的贡献者。
 
 <!-- screenshot: repo-overview -->
 > 📷 *截图：仓库总览 —— 应用内已安装的官方插件一览*
 
 ## 这是什么
 
-这是 **WHF 股票看板**（一款桌面股票看板应用）的官方插件仓库，收录 4 个官方插件的完整源码、清单（`manifest.json`）与可安装的安装包（`.zip`）。
+这是 **[WHF 股票看板](https://github.com/WHF293/whf-stock-board)**（一款桌面股票看板应用）的官方插件仓库，收录 4 个官方插件的完整源码、清单（`manifest.json`）与可安装的安装包（`.zip`）。
 
 WHF 股票看板本身只保留插件内核与开放能力（贡献点、`ctx.*` 服务，以及应用提供给插件的宿主服务），**插件源码与安装包都收在这个仓库里**。也就是说，插件不是塞进应用源码里的，而是像浏览器扩展一样独立分发：应用内「插件工坊」（应用内的插件管理入口）导入一个 zip，插件就用起来了，也能一键卸载。
 
@@ -137,7 +137,8 @@ declare module '../../host/types/plugin.types' {
 
 ## 相关链接
 
-- WHF 股票看板（应用本体，包含插件内核与开放能力）：`../whf-stock-board`
+- [WHF 股票看板](https://github.com/WHF293/whf-stock-board) —— 应用本体，包含插件内核与开放能力
+- 本仓库：<https://github.com/jx62257070/tauri-plugin>
 - 插件 id、版本、入口与说明以各插件的 `manifest.json` 为准
 
-> 仓库的托管地址（GitHub / 其他平台）尚未确定。本文档中出现的克隆命令、徽章链接均为可替换占位，落地后请统一替换为真实地址。
+构建命令里的 `--host ../whf-stock-board` 指向应用仓库的**本地克隆目录**，需与主 app 仓库并列放置（或用环境变量 `WHF_HOST_APP` 指定任意路径）。

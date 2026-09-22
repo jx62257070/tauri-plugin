@@ -21,7 +21,7 @@
 
 ## 安装
 
-前置：已安装 **WHF 股票看板**。
+前置：已安装 **[WHF 股票看板](https://github.com/WHF293/whf-stock-board)**。
 
 1. 打开应用，进入「插件工坊」（应用内的插件管理入口）；
 2. 选择「导入插件」，选中 `dsh-dividend-screen-1.0.0.zip`；
