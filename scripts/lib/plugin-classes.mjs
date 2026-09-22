@@ -65,7 +65,10 @@ const keepToken = (token, isKnownClass) =>
  */
 export const collectArtifactClasses = (code, isKnownClass = () => false) => {
   const classes = new Set();
-  /** 把一段文本按空白 / 引号切碎后收类名 */
+  /**
+   * 把一段文本按空白 / 引号切碎后收类名
+   * @param text 待切分的文本
+   */
   const absorb = (text) => {
     for (const token of text.split(/[\s"'`]+/)) {
       if (keepToken(token, isKnownClass)) classes.add(token);

@@ -181,6 +181,7 @@ const buildArtifact = async (target) => {
  * @param id 插件 id
  * @param code 产物源码
  * @param manifest 清单内容
+ * @returns 产物导出的插件定义（已校验 id / name / version 与清单一致）
  */
 const validateArtifact = async (id, code, manifest) => {
   const file = path.join(TMP, id, 'bridged.mjs');
@@ -209,6 +210,7 @@ const validateArtifact = async (id, code, manifest) => {
  * 打包一个插件
  * @param target 构建目标
  * @param hostRoot 宿主仓库根目录（可为 null）
+ * @returns 打包结果（产物路径与体积）
  */
 const packTarget = async (target, hostRoot) => {
   const { id } = target;

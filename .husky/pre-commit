@@ -1,0 +1,9 @@
+# 提交前检查：全量 ESLint（零告警才放行）
+#
+# 这里**刻意不用 lint-staged**：它需要 git stash 做「部分暂存」备份，
+# 本机实测会在失败清理时删掉 .git/refs（整个仓库失效，git 报 not a git repository）。
+# 全量 lint 只跑几秒（34 个 .ts + 7 个 .vue），不上 git 操作，安全得多。
+#
+# 只卡 error 与 warning：`pnpm lint` 无 --max-warnings 时 warning 不影响退出码，
+# 因此这里显式加上 --max-warnings=0，让 JSDoc 之类的缺失也一并拦下。
+pnpm lint --max-warnings=0

@@ -1,0 +1,3 @@
+# 提交信息校验（Conventional Commits，规则见 commitlint.config.mjs）
+# 形如：feat(dsh-quick-note): 速记支持关联股票
+pnpm commitlint --edit "$1"
