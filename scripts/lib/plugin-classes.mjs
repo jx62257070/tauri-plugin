@@ -104,7 +104,7 @@ export const readExistingAllowlist = (hostRoot) => {
 export const writeClassAllowlist = (hostRoot, classes) => {
   const file = path.join(hostRoot, CLASS_ALLOWLIST_RELATIVE);
   const body = [
-    '# 官方插件用到的 Tailwind 类名 —— 由 whf-stock-board-plugin 的 scripts/build-plugins.mjs 自动生成，勿手改',
+    '# 官方插件用到的 Tailwind 类名 —— 由 tauri-plugin 的 scripts/build-plugins.mjs 自动生成，勿手改',
     '# 插件源码不在宿主的 src/ 下（独立仓库 + zip 产物包分发），Tailwind 扫不到它们；',
     '# 靠这份清单经 theme.css 的 @source 进入产物 CSS。详见宿主 AGENTS.md「第三方插件的样式边界」。',
     '',

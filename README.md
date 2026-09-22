@@ -1,10 +1,10 @@
-# whf-stock-board-plugin
+# tauri-plugin
 
 [WHF 股票看板](https://github.com/) 的**官方插件仓库**：四个官方插件的源码、清单与分发产物都在这里，
 宿主应用（`whf-stock-board`）只保留插件内核与开放能力，不再持有插件源码。
 
 ```
-whf-stock-board-plugin/
+tauri-plugin/
 ├─ plugins/<插件 id>/     源码（.ts / .vue）+ manifest.json + README.md
 ├─ host/                  宿主契约快照（自动生成，勿手改）
 ├─ scripts/
