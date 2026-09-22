@@ -6,3 +6,7 @@ plugins-dist/.tmp/
 
 # 本地沉淀（方案、临时脚本、验证输出）
 .ai/
+.readme-rewrite/
+
+# 工作区数据（会话记忆等，勿入库）
+.workbuddy/
