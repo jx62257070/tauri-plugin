@@ -1,0 +1,9 @@
+{
+  "id": "dsh-dividend-screen",
+  "name": "股息筛选",
+  "version": "1.0.0",
+  "description": "左侧导航新增「股息筛选」看板：TTM 股息率排行（东财口径）+ 保留去年分红率、按中报净利增速推算今年股息率；结果落本地插件库，重进页面不联网。",
+  "author": "内置",
+  "entry": "main.js",
+  "readme": "README.md"
+}

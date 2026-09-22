@@ -1,0 +1,8 @@
+# 依赖
+node_modules/
+
+# 构建临时目录
+plugins-dist/.tmp/
+
+# 本地沉淀（方案、临时脚本、验证输出）
+.ai/

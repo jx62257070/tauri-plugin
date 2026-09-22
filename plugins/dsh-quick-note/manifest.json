@@ -1,0 +1,9 @@
+{
+  "id": "dsh-quick-note",
+  "name": "速记",
+  "version": "1.1.0",
+  "description": "左侧栏底部新增「速记」入口（抽屉形态）：随手记一条，随写随存，可关联一只股票（宿主选股弹窗），关联后的速记展示在该股的个股详情里；对外提供 note:repo 服务与 note:saved 事件供其他插件复用。",
+  "author": "内置",
+  "entry": "main.js",
+  "readme": "README.md"
+}
