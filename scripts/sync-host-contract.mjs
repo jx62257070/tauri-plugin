@@ -118,8 +118,13 @@ const main = () => {
     'types/notify.types.ts',
     'types/stock-quote.types.ts',
     'types/table.types.ts',
+    'types/watch-widget.types.ts',
     'constants/plugin.constants.ts',
     'constants/trend.constants.ts',
+    'constants/watch-widget.constants.ts',
+    // 小组件窗口两端共享的「事件协议」常量：渲染端在宿主 src/plugins/watch-widget/，
+    // 插件产物经本快照引用同一份事实源，label / 事件名写岔一边窗口就静默失联
+    'plugins/watch-widget/constants.ts',
   ];
   const files = collectClosure(hostSrc, seeds);
 

@@ -25,6 +25,9 @@ export const NOTIFY_MAX_ITEMS = 4;
 /** 浮窗来源标签：自选盯盘插件的阈值提醒 */
 export const NOTIFY_SOURCE_WATCH_ALERT = '盯盘提醒';
 
+/** 浮窗来源标签：自选股的批量操作反馈 */
+export const NOTIFY_SOURCE_WATCHLIST = '自选股';
+
 /** 语气 → 浮窗左侧强调条与来源标签配色类名 */
 export const NOTIFY_TONE_CLASS = {
   flat: { bar: 'bg-flat', label: 'text-text-tertiary' },
