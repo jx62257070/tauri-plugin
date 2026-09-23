@@ -4,16 +4,16 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-package%20manager-orange)](https://pnpm.io/)
 
-**WHF 股票看板**官方插件的源码与安装包仓库 —— 面向使用 [WHF 股票看板](https://github.com/WHF293/whf-stock-board) 的用户，以及想改插件、提插件的贡献者。
+**WHF 股票看板**官方插件的源码仓库（安装包在 GitHub Release）—— 面向使用 [WHF 股票看板](https://github.com/WHF293/whf-stock-board) 的用户，以及想改插件、提插件的贡献者。
 
 <!-- screenshot: repo-overview -->
 > 📷 *截图：仓库总览 —— 应用内已安装的官方插件一览*
 
 ## 这是什么
 
-这是 **[WHF 股票看板](https://github.com/WHF293/whf-stock-board)**（一款桌面股票看板应用）的官方插件仓库，收录 4 个官方插件的完整源码、清单（`manifest.json`）与可安装的安装包（`.zip`）。
+这是 **[WHF 股票看板](https://github.com/WHF293/whf-stock-board)**（一款桌面股票看板应用）的官方插件仓库，收录 4 个官方插件的完整源码与清单（`manifest.json`）；可安装的 zip 安装包由 GitHub Release 分发。
 
-WHF 股票看板本身只保留插件内核与开放能力（贡献点、`ctx.*` 服务，以及应用提供给插件的宿主服务），**插件源码与安装包都收在这个仓库里**。也就是说，插件不是塞进应用源码里的，而是像浏览器扩展一样独立分发：应用内「插件工坊」（应用内的插件管理入口）导入一个 zip，插件就用起来了，也能一键卸载。
+WHF 股票看板本身只保留插件内核与开放能力（贡献点、`ctx.*` 服务，以及应用提供给插件的宿主服务），**插件源码收在这个仓库里，安装包则由 GitHub Release 分发**（打 tag 或手动触发时由 CI 现打现传）。也就是说，插件不是塞进应用源码里的，而是像浏览器扩展一样独立分发：应用内「插件工坊」（应用内的插件管理入口）导入一个 zip，插件就用起来了，也能一键卸载。
 
 ## 插件清单
 
@@ -148,7 +148,7 @@ declare module '../../host/types/plugin.types' {
 2. 需要升版本就改 `manifest.json` 的 `version`（安装包文件名与包内清单都跟着它）；
 3. `node scripts/build-plugins.mjs <id> --host ../whf-stock-board`；
 4. 在 WHF 股票看板仓库跑一次样式审计冒烟（安装包对着应用产物 CSS 必须零缺样式）；
-5. 提交 `plugins/<id>/` 与新安装包 zip。
+5. 提交 `plugins/<id>/` 下的源码与 manifest（升版本改 `manifest.json` 的 `version`）—— 安装包不用提交，发版时由 CI 打包并上传到 Release。
 
 **提一个新插件：** 在 `plugins/<id>/` 下放好 `plugin.ts`（入口）、`manifest.json` 与 `README.md`，并把它登记进 `scripts/build-plugins.mjs` 的构建目标表。
 
