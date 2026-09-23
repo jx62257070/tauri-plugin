@@ -42,6 +42,7 @@ tauri-plugin/
 ├─ host/                  类型快照目录：从 WHF 股票看板同步的类型与常量（自动生成，勿手改）
 ├─ scripts/
 │  ├─ build-plugins.mjs        打包流水线：源码 → 单文件 ESM → zip 安装包
+│  ├─ release-notes.mjs        生成 Release 说明正文（版本 / 体积 / 文件名都从清单与产物读出）
 │  ├─ sync-host-contract.mjs   从 WHF 股票看板同步类型快照
 │  └─ lib/plugin-classes.mjs   安装包用到的 Tailwind 类 → 样式类白名单
 └─ plugins-dist/          安装包 zip（已入库，插件工坊里导入的就是它）
@@ -74,6 +75,19 @@ pnpm sync:host
 | `pnpm lint:fix` | 同上，并自动修复可修项 |
 
 `--host` 可以省略（默认就是 `../whf-stock-board`，也可用环境变量 `WHF_HOST_APP` 指定）；省略时打包照常，只是不回写样式类白名单。
+
+### 发版本（Release）
+
+Release 由 GitHub Actions（`.github/workflows/release.yml`）自动发，**不用人手在网页上拖 zip**：
+
+| 触发方式 | 怎么用 | 标签从哪来 |
+| --- | --- | --- |
+| 推送 `v*` 标签 | `git tag v1.0.0 && git push origin v1.0.0` | 就是推上去的那个 tag |
+| 手动触发 | 仓库 → Actions →「Release 插件安装包」→ Run workflow | 填了 tag 就用填的；留空则用 `package.json` 的 version 拼出 `v<version>` |
+
+流水线先跑 `pnpm lint` 与 `pnpm typecheck`（过不了就不发版），再打 4 个包，最后把 `plugins-dist/*.zip` 作为 Release 资产上传 —— **一个插件一个 zip，不做合集包**。
+
+版本策略是**仓库整体版本**：tag 对齐 `package.json` 的 version；各插件自己的版本（以及体积、安装包文件名）由 `scripts/release-notes.mjs` 从清单与产物读出来，写进 Release 说明的表格里。手动触发时若该 tag 的 Release 已存在，则覆盖同名资产（`gh release upload --clobber`），不升版本也能重出包。
 
 ## 设计说明
 

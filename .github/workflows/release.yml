@@ -1,0 +1,120 @@
+# Release 插件安装包：4 个官方插件各出一个 zip，作为 Release 资产上传
+#
+# 两种触发方式：
+# 1. 推送 v* 标签（如 git tag v1.0.0 && git push origin v1.0.0）—— 常规发版；
+# 2. 手动 Run workflow —— 不升版本也能重出包；tag 留空则用 package.json 的 version 拼出 v<version>。
+#
+# 版本策略是「仓库整体版本」：tag 对齐 package.json 的 version，
+# 各插件自己的版本（manifest.json）写在 Release 说明的表格里。
+name: Release 插件安装包
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release 标签，形如 v1.0.0；留空则用 package.json 的 version 拼出'
+        required: false
+        type: string
+        default: ''
+      note:
+        description: '附加说明（可选），会放在 Release 正文开头'
+        required: false
+        type: string
+        default: ''
+
+# 上传 Release 资产必需
+permissions:
+  contents: write
+
+# 同一个 tag 重复触发时排队，避免两次上传互相覆盖
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: 打包并发布 Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # 锁文件是 lockfileVersion 9.0（pnpm 9/10 通用）；仓库没写 packageManager 字段，这里显式指定
+          version: 10
+
+      - name: 装 Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 装依赖
+        run: pnpm install --frozen-lockfile
+
+      # —— 质量门禁：过不了就不发版 ——
+      - name: 代码规范检查
+        run: pnpm lint --max-warnings=0
+
+      - name: 类型检查
+        run: pnpm typecheck
+
+      # 不传 --host：CI 里没有主 app 仓库，脚本只会跳过「样式白名单回写」，4 个包照常产出
+      - name: 打 4 个插件包
+        run: node scripts/build-plugins.mjs
+
+      - name: 生成 Release 说明
+        run: node scripts/release-notes.mjs
+
+      - name: 解析 Release 标签与正文
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_NOTE: ${{ inputs.note }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ -n "$INPUT_TAG" ]; then
+              tag="$INPUT_TAG"
+            else
+              tag="v$(node -p "require('./package.json').version")"
+            fi
+          else
+            tag="$REF_NAME"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Release 标签：$tag"
+          if [ -n "$INPUT_NOTE" ]; then
+            { printf '%s\n\n' "$INPUT_NOTE"; cat plugins-dist/release-notes.md; } > plugins-dist/release-notes.final.md
+          else
+            cp plugins-dist/release-notes.md plugins-dist/release-notes.final.md
+          fi
+
+      - name: 上传 Release 资产
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          cd plugins-dist
+          zips=(*.zip)
+          if [ "${#zips[@]}" -eq 0 ]; then
+            echo "::error::没有任何打包产物，发布中止"
+            exit 1
+          fi
+          echo "待上传 ${#zips[@]} 个安装包：${zips[*]}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在：覆盖同名资产"
+            gh release upload "$TAG" "${zips[@]}" --clobber
+          else
+            echo "创建 Release $TAG"
+            gh release create "$TAG" "${zips[@]}" --title "$TAG" --notes-file release-notes.final.md
+          fi
