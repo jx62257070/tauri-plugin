@@ -5,6 +5,8 @@ node_modules/
 plugins-dist/.tmp/
 # Release 说明正文：由 scripts/release-notes.mjs 生成（CI 产物，勿入库）
 plugins-dist/release-notes*.md
+# 插件更新清单：由 scripts/build-update-index.mjs 生成（CI 产物，勿入库）
+plugins-dist/index.json
 # 安装包产物：不入库，正式渠道是 GitHub Release
 # （https://github.com/jx62257070/tauri-plugin/releases）
 plugins-dist/*.zip

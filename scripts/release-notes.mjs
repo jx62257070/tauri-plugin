@@ -14,25 +14,13 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-/** 仓库根目录（本脚本在 scripts/ 下） */
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-/** 插件源码目录 */
-const PLUGINS = path.join(ROOT, 'plugins');
-
-/** 打包产物目录（与 scripts/build-plugins.mjs 的 DIST 一致） */
-const DIST = path.join(ROOT, 'plugins-dist');
+import { DIST, ROOT, collectPackageRows } from './lib/plugin-rows.mjs';
 
 /** 说明正文输出文件（CI 用 --notes-file 消费） */
 const NOTES_FILE = path.join(DIST, 'release-notes.md');
 
 /** 宿主应用仓库地址（说明里引导用户先装应用） */
 const HOST_REPO_URL = 'https://github.com/WHF293/whf-stock-board';
-
-/** 表格里的插件顺序（与 README「插件清单」一致；未登记的按 id 排在最后） */
-const DISPLAY_ORDER = ['dsh-mainline', 'dsh-dividend-screen', 'dsh-quick-note', 'dsh-sidebar-watch'];
 
 /** 「一句话说明」的最大字符数（含末尾省略号） */
 const SUMMARY_MAX = 56;
@@ -60,43 +48,6 @@ const truncateAtClause = (text, max) => {
     breakAt = Math.max(breakAt, cut.lastIndexOf(mark));
   }
   return breakAt >= SUMMARY_MIN ? `${text.slice(0, breakAt)}…` : `${cut}…`;
-};
-
-/**
- * 列出插件 id
- *
- * 直接扫 `plugins/` 下的目录，避免与 `scripts/build-plugins.mjs` 的构建目标表
- * 各写一份（新增插件只要落了目录就会进 Release 说明）。
- * @returns 按展示顺序排好的插件 id 数组
- */
-const listPluginIds = () => {
-  const rank = new Map(DISPLAY_ORDER.map((id, index) => [id, index]));
-  return fs
-    .readdirSync(PLUGINS, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort((left, right) => {
-      const rankLeft = rank.get(left) ?? Number.MAX_SAFE_INTEGER;
-      const rankRight = rank.get(right) ?? Number.MAX_SAFE_INTEGER;
-      return rankLeft === rankRight ? left.localeCompare(right) : rankLeft - rankRight;
-    });
-};
-
-/**
- * 读一个插件的清单
- * @param id 插件 id（= 插件目录名）
- * @returns 清单对象
- */
-const readManifest = (id) => {
-  const manifestFile = path.join(PLUGINS, id, 'manifest.json');
-  if (!fs.existsSync(manifestFile)) {
-    throw new Error(`缺少清单文件：${path.relative(ROOT, manifestFile)}`);
-  }
-  const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
-  if (manifest.id !== id) {
-    throw new Error(`清单 id（${manifest.id}）与目录名（${id}）不一致`);
-  }
-  return manifest;
 };
 
 /**
@@ -132,35 +83,18 @@ const escapeCell = (text) => text.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 const formatKb = (bytes) => `${(bytes / 1024).toFixed(1)} KB`;
 
 /**
- * 汇总每一行：清单字段 + 产物文件名与体积
+ * 汇总每一行：共用包行数据 + 本脚本独有的「一句话摘要」与「体积文本」
+ *
+ * 包行数据（id / 版本 / 产物文件名 / 字节数）来自 `collectPackageRows()`，
+ * 与 `scripts/build-update-index.mjs` 同源 —— 新增插件时两边不会漏改一处。
  * @returns 表格行数据数组
  */
-const collectRows = () => {
-  const rows = [];
-  for (const id of listPluginIds()) {
-    const manifest = readManifest(id);
-    const zipName = `${id}-${manifest.version}.zip`;
-    const zipFile = path.join(DIST, zipName);
-    if (!fs.existsSync(zipFile)) {
-      throw new Error(
-        `找不到安装包 ${zipName}：请先跑 node scripts/build-plugins.mjs`
-        + `（Release 说明必须与资产一一对应，缺包不放行）`,
-      );
-    }
-    rows.push({
-      id,
-      name: manifest.name ?? id,
-      version: manifest.version,
-      summary: summarize(manifest.description ?? ''),
-      zipName,
-      size: formatKb(fs.statSync(zipFile).size),
-    });
-  }
-  if (rows.length === 0) {
-    throw new Error(`plugins/ 下没有任何插件：${path.relative(ROOT, PLUGINS)}`);
-  }
-  return rows;
-};
+const collectRows = () =>
+  collectPackageRows().map((row) => ({
+    ...row,
+    summary: summarize(row.description ?? ''),
+    size: formatKb(row.bytes),
+  }));
 
 /**
  * 渲染 Release 说明正文（Markdown）

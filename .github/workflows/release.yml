@@ -97,6 +97,14 @@ jobs:
             cp plugins-dist/release-notes.md plugins-dist/release-notes.final.md
           fi
 
+      # 必须在「解析 Release 标签」之后：清单里的 zip 直链钉在本 Release 的 tag 上，
+      # 用会漂移的 latest/download 拼链，下次发版后直链必然 404
+      - name: 生成插件更新清单
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/build-update-index.mjs
+
       - name: 上传 Release 资产
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -110,11 +118,17 @@ jobs:
             echo "::error::没有任何打包产物，发布中止"
             exit 1
           fi
-          echo "待上传 ${#zips[@]} 个安装包：${zips[*]}"
+          # 更新清单与主 app 的「插件在线更新」是一对一依赖，缺了它更新入口整个不可用
+          if [ ! -f index.json ]; then
+            echo "::error::缺少 plugins-dist/index.json，发布中止"
+            exit 1
+          fi
+          assets=(index.json "${zips[@]}")
+          echo "待上传 ${#zips[@]} 个安装包 + 1 份更新清单"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG 已存在：覆盖同名资产"
-            gh release upload "$TAG" "${zips[@]}" --clobber
+            gh release upload "$TAG" "${assets[@]}" --clobber
           else
             echo "创建 Release $TAG"
-            gh release create "$TAG" "${zips[@]}" --title "$TAG" --notes-file release-notes.final.md
+            gh release create "$TAG" "${assets[@]}" --title "$TAG" --notes-file release-notes.final.md
           fi
