@@ -28,9 +28,16 @@ WHF 股票看板本身只保留插件内核与开放能力（贡献点、`ctx.*`
 
 前置：已安装 **WHF 股票看板**。
 
-1. 打开应用，进入「插件工坊」（应用内的插件管理入口）；
-2. 选择「导入插件」，选中 `plugins-dist/` 下对应插件的 zip，例如 `plugins-dist/dsh-quick-note-1.1.0.zip`；
-3. 导入后启用，插件入口立即出现在应用里（菜单 / 顶栏 / 侧栏 / 个股详情等，各插件位置见其说明）。
+**从 Release 下载（正式渠道）：**
+
+1. 打开 [Release 页面](https://github.com/jx62257070/tauri-plugin/releases)，挑你要的插件；
+2. **每个插件一个 zip**，按需下载即可，不必全下（文件名形如 `dsh-quick-note-1.1.0.zip`）；
+3. 打开应用，进入「插件工坊」（应用内的插件管理入口），选择「导入插件」，选中刚下载的 zip；
+4. 导入后启用，插件入口立即出现在应用里（菜单 / 顶栏 / 侧栏 / 个股详情等，各插件位置见其说明）。
+
+Release 说明里列着每个插件的版本、一句话说明、安装包文件名与体积，照着挑就行。
+
+**用本地构建产物：** 也可以导入 `plugins-dist/` 下对应插件的 zip（例如 `plugins-dist/dsh-quick-note-1.1.0.zip`）—— 那是 `pnpm build` 出来的**本地构建产物**，正式分发走上面的 Release 资产。
 
 卸载：在「插件工坊」里对该插件点卸载。卸载时应用会询问是否一并删除该插件的本地数据表，选「保留」则下次重新安装仍能看到历史数据。
 
@@ -71,7 +78,7 @@ pnpm sync:host
 | `pnpm build:mainline` / `build:dividend` / `build:note` / `build:watch` | 只打对应插件 |
 | `pnpm sync:host` | 从 WHF 股票看板同步类型快照到 `host/` |
 | `pnpm typecheck` | 类型检查（连 `host/` 的类型快照一起查） |
-| `pnpm lint` | 代码规范检查（`plugins/` 与 `scripts/`） |
+| `pnpm lint --max-warnings=0` | 代码规范检查（`plugins/` 与 `scripts/`） |
 | `pnpm lint:fix` | 同上，并自动修复可修项 |
 
 `--host` 可以省略（默认就是 `../whf-stock-board`，也可用环境变量 `WHF_HOST_APP` 指定）；省略时打包照常，只是不回写样式类白名单。
@@ -85,7 +92,7 @@ Release 由 GitHub Actions（`.github/workflows/release.yml`）自动发，**不
 | 推送 `v*` 标签 | `git tag v1.0.0 && git push origin v1.0.0` | 就是推上去的那个 tag |
 | 手动触发 | 仓库 → Actions →「Release 插件安装包」→ Run workflow | 填了 tag 就用填的；留空则用 `package.json` 的 version 拼出 `v<version>` |
 
-流水线先跑 `pnpm lint` 与 `pnpm typecheck`（过不了就不发版），再打 4 个包，最后把 `plugins-dist/*.zip` 作为 Release 资产上传 —— **一个插件一个 zip，不做合集包**。
+流水线先跑 `pnpm lint --max-warnings=0` 与 `pnpm typecheck`（过不了就不发版），再打 4 个包，最后把 `plugins-dist/*.zip` 作为 Release 资产上传 —— **一个插件一个 zip，不做合集包**。
 
 版本策略是**仓库整体版本**：tag 对齐 `package.json` 的 version；各插件自己的版本（以及体积、安装包文件名）由 `scripts/release-notes.mjs` 从清单与产物读出来，写进 Release 说明的表格里。手动触发时若该 tag 的 Release 已存在，则覆盖同名资产（`gh release upload --clobber`），不升版本也能重出包。
 
@@ -149,13 +156,13 @@ declare module '../../host/types/plugin.types' {
 
 | 规范 | 落地位置 | 说明 |
 | --- | --- | --- |
-| 代码规范 | `eslint.config.mjs` | 与主 app 同一套卡口：禁 enum、类型导入必须 `import type`、导出声明必须带 JSDoc、禁未使用变量。提交时自动跑 `pnpm lint`，告警非零即拦下 |
+| 代码规范 | `eslint.config.mjs` | 与主 app 同一套卡口：禁 enum、类型导入必须 `import type`、导出声明必须带 JSDoc、禁未使用变量。提交时自动跑 `pnpm lint --max-warnings=0`，告警非零即拦下 |
 | 设计规范 | [DESIGN.md](./DESIGN.md) | 主 app `DESIGN.md` 的插件侧适配版：沿用宿主设计语言，并额外约束「只能用宿主已有的 Tailwind 类名」等插件特有规则 |
 | 提交规范 | `commitlint.config.mjs` + [husky](./.husky/) | Conventional Commits，提交信息形如 `feat(dsh-quick-note): 速记支持关联股票`，scope 用插件 id |
 
 husky 钩子在 `pnpm install` 时自动装好（`prepare` 脚本）。若需临时跳过校验，用 `git commit --no-verify`——但别养成习惯。
 
-约定：保持插件 id 稳定（id 是数据表名与存储命名空间的一部分）；一个 PR 只做一件事；源码通过 `pnpm typecheck` 与 `pnpm lint`。
+约定：保持插件 id 稳定（id 是数据表名与存储命名空间的一部分）；一个 PR 只做一件事；源码通过 `pnpm typecheck` 与 `pnpm lint --max-warnings=0`。
 
 ## 许可
 

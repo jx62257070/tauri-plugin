@@ -35,7 +35,32 @@ const HOST_REPO_URL = 'https://github.com/WHF293/whf-stock-board';
 const DISPLAY_ORDER = ['dsh-mainline', 'dsh-dividend-screen', 'dsh-quick-note', 'dsh-sidebar-watch'];
 
 /** 「一句话说明」的最大字符数（含末尾省略号） */
-const SUMMARY_MAX = 48;
+const SUMMARY_MAX = 56;
+
+/** 截断后回退时认的「子句边界」分隔符 */
+const CLAUSE_BREAKS = ['，', '、', '；', ';', '：', '/'];
+
+/** 回退到子句边界后至少要剩这么多字，否则宁可硬切（避免退成「同花顺…」这种残句） */
+const SUMMARY_MIN = 12;
+
+/**
+ * 截断到子句边界：先按字数硬切，再从切点往回找最近的分隔符，在边界处收尾
+ *
+ * 只硬切会把「…（萌芽·确认·狂热·…」这类断在半句话里的尾巴留在表格里，
+ * 所以硬切之后要往回退到最近的子句分隔符；退完剩得太短就说明没有可用边界，宁可硬切。
+ * @param text 待截断文本
+ * @param max 最大字符数（含省略号）
+ * @returns 截断后的文本
+ */
+const truncateAtClause = (text, max) => {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  let breakAt = -1;
+  for (const mark of CLAUSE_BREAKS) {
+    breakAt = Math.max(breakAt, cut.lastIndexOf(mark));
+  }
+  return breakAt >= SUMMARY_MIN ? `${text.slice(0, breakAt)}…` : `${cut}…`;
+};
 
 /**
  * 列出插件 id
@@ -89,7 +114,7 @@ const summarize = (description, max = SUMMARY_MAX) => {
   const body = colon > 0 && colon <= 24 ? flat.slice(colon + 1).trim() : flat;
   const sentence = /^[^。；;！!？?]*/.exec(body)?.[0].trim() ?? body;
   const text = sentence.length > 0 ? sentence : body;
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  return truncateAtClause(text, max);
 };
 
 /**

@@ -207,6 +207,33 @@ const validateArtifact = async (id, code, manifest) => {
 };
 
 /**
+ * 取插件源码目录里「最新的输入文件 mtime」，作为整个 zip 的统一时间戳
+ *
+ * zip 条目默认记「打包那一刻」（DOS 时间戳），于是内容一字不改也会因时间戳不同
+ * 而产出不同字节 —— 入库产物永远 dirty，`git status` 每次都是红的。
+ * 改成跟住源码：内容不变 → mtime 不变 → zip 逐字节可复现。
+ * @param srcDir 插件源码目录
+ * @returns 统一时间戳（源码里最新那个文件的 mtime；目录为空时用固定日期兜底）
+ */
+const resolveSourceMtime = (srcDir) => {
+  const newestIn = (dir) => {
+    let newest = 0;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith('.')) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        newest = Math.max(newest, newestIn(full));
+      } else if (entry.isFile()) {
+        newest = Math.max(newest, fs.statSync(full).mtimeMs);
+      }
+    }
+    return newest;
+  };
+  const newest = newestIn(srcDir);
+  return new Date(newest > 0 ? newest : Date.UTC(2000, 0, 1));
+};
+
+/**
  * 打包一个插件
  * @param target 构建目标
  * @param hostRoot 宿主仓库根目录（可为 null）
@@ -236,7 +263,8 @@ const packTarget = async (target, hostRoot) => {
     files[manifest.readme ?? 'README.md'] = strToU8(fs.readFileSync(readmeFile, 'utf8'));
   }
 
-  const zipped = zipSync(files, { level: 9 });
+  // 统一时间戳挂在 zip 选项上（fflate 会把它并进每个条目）：内容不变 → 字节不变
+  const zipped = zipSync(files, { level: 9, mtime: resolveSourceMtime(pluginDir) });
   const outFile = path.join(DIST, `${id}-${manifest.version}.zip`);
   fs.mkdirSync(DIST, { recursive: true });
   fs.writeFileSync(outFile, zipped);

@@ -3,6 +3,8 @@ node_modules/
 
 # 构建临时目录
 plugins-dist/.tmp/
+# Release 说明正文：由 scripts/release-notes.mjs 生成（CI 产物，勿入库）
+plugins-dist/release-notes*.md
 
 # 本地沉淀（方案、临时脚本、验证输出）
 .ai/
