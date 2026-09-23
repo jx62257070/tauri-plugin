@@ -63,14 +63,24 @@ export const WATCH_WIDGET_POPOVER_HEATMAP_ROWS = 5;
 export const WATCH_WIDGET_POPOVER_HEATMAP_TOP_N = 10;
 
 /**
+ * 气泡大盘视图的等效行数（高度计算口径：总高 = 头部 40 + 4×34 + 底部 6 = 182）
+ *
+ * 大盘视图展示上证 / 深证 / 创业板指 / 恒生四个指数行，高度同样与候选行数解耦
+ */
+export const WATCH_WIDGET_POPOVER_MARKET_ROWS = 4;
+
+/**
  * 气泡内容视图（禁 enum：const 对象 + types/watch-widget.types.ts 派生类型）
  *
  * list = 候选列表（默认）；heatmap = 板块热力（市场总览「板块热力」迷你版，
- * 仅展示无交互）。视图状态归渲染端持有，切换时经 popover-view 事件上报主窗口。
+ * 仅展示无交互）；market = 大盘走势（上证 / 深证 / 创业板指 / 恒生四指数行情）。
+ * 视图状态归渲染端持有，切换时经 popover-view 事件上报主窗口；头部图标按
+ * list → heatmap → market 循环切换。
  */
 export const WATCH_WIDGET_POPOVER_VIEW = {
   LIST: 'list',
   HEATMAP: 'heatmap',
+  MARKET: 'market',
 } as const;
 
 /** 气泡与条的间距（逻辑像素） */
@@ -112,6 +122,8 @@ export const WATCH_WIDGET_EVENTS = {
   POPOVER_VIEW: 'watch-widget://popover-view',
   /** 主窗口 → 气泡：板块热力快照（Top N，市场总览板块热力同口径；拉取成功才推送） */
   HEATMAP: 'watch-widget://heatmap',
+  /** 主窗口 → 气泡：大盘指数快照（上证 / 深证 / 创业板指 / 恒生；拉取成功才推送） */
+  INDEXES: 'watch-widget://indexes',
   /** 盯盘条 → 主窗口：条被拖动（实时携带物理坐标；主窗口负责气泡跟随与落点记忆） */
   BAR_MOVED: 'watch-widget://bar-moved',
   /** 条 / 气泡 → 主窗口：打开某只股票（唤起主窗口 + 跳详情页，左列=盯盘候选） */

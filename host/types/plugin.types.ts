@@ -873,13 +873,31 @@ export interface IndustryBoardSnapshot {
 }
 
 /**
+ * 指数轻量快照（`app:market` 的 `fetchIndexQuotes` 返回项）
+ *
+ * 与 `GlobalIndexQuote` 同源（东财 ulist），但只暴露小组件「大盘走势」真正
+ * 消费的四个字段；顺序即调用方展示顺序（上证 / 深证 / 创业板指 / 恒生）。
+ */
+export interface MarketIndexQuote {
+  /** 指数代码（上游原值，如 000001 / HSI；仅作渲染 key，不做归一化承诺） */
+  code: string;
+  /** 指数名称（上证指数 / 深证成指 / 创业板指 / 恒生指数） */
+  name: string;
+  /** 最新点位（上游未给时为 null） */
+  price: number | null;
+  /** 涨跌幅（百分数；上游未给时为 null） */
+  changePercent: number | null;
+}
+
+/**
  * 市场级行情服务（`app:market`）
  *
  * 成交总额 / 涨停池这类**市场剖面**数据：取数口径固定在宿主这一侧，
  * 插件各自找源只会各说各话（不同源的指数样本、复权与停牌处理并不一致）。
  * 前两者为重量级网络请求：**只能由用户点击触发，不要轮询**。
  * `fetchIndustryBoards` 是单页 clist 轻接口，允许「小组件热力视图激活期间」
- * 这类短窗口低频轮询（见 §5.10）。
+ * 这类短窗口低频轮询（见 §5.10）；`fetchIndexQuotes` 同理，允许「小组件大盘
+ * 视图激活期间」30s 级低频轮询（东财 ulist 精确 secid 单次请求）。
  */
 export interface MarketService {
   /**
@@ -898,6 +916,12 @@ export interface MarketService {
    * @returns 全量行业板块（调用方自行排序 / 截取 Top N）
    */
   fetchIndustryBoards: () => Promise<IndustryBoardSnapshot[]>;
+  /**
+   * 小组件「大盘走势」的四个指数快照（东财 ulist 单次请求）
+   * @returns 上证指数 / 深证成指 / 创业板指 / 恒生指数（顺序即展示顺序；
+   * 上游对个别 secid 缺数据时该条目不出现，调用方按空态兜底）
+   */
+  fetchIndexQuotes: () => Promise<MarketIndexQuote[]>;
 }
 
 /**

@@ -29,6 +29,7 @@ import type { UnlistenFn } from '@tauri-apps/api/event';
 import { WATCH_WIDGET_MODE, WATCH_WIDGET_POWER } from '../../host/constants/watch-widget.constants';
 import { NOTIFY_TONE } from '../../host/constants/notify.constants';
 import { filterCandidatesByWatchlist } from '../dsh-sidebar-watch/candidates';
+import { WATCH_MARQUEE_TONE_BY_TREND } from '../dsh-sidebar-watch/constants';
 import {
   WATCH_WIDGET_BAR_HEIGHT,
   WATCH_WIDGET_BAR_WIDTH,
@@ -44,6 +45,7 @@ import {
 } from '../../host/plugins/watch-widget/constants';
 import type {
   WatchWidgetHeatmapBoard,
+  WatchWidgetIndexRow,
   WatchWidgetPopoverView,
   WatchWidgetPopoverViewPayload,
 } from '../../host/types/watch-widget.types';
@@ -58,16 +60,19 @@ import {
   rectContains,
   type PhysicalRect,
 } from './windows';
-import type { PluginDefinition } from '../../host/types/plugin.types';
+import type {
+  PluginDefinition,
+  MarketIndexQuote,
+} from '../../host/types/plugin.types';
 
 /** 必需宿主服务缺失时的统一报错文案 */
 const MISSING_SERVICES_HINT =
   '宿主未提供 app:watchlist / app:stock-open / app:market-status / '
   + 'app:watch-widget-settings / app:theme / app:format 服务';
 
-/** 气泡热力视图的板块轮询间隔（毫秒；与市场总览「市场宽度」轮询同频）。
- * 仅在「气泡展开 && 热力视图激活」期间运行，收起 / 切回列表即停 */
-const HEATMAP_POLL_MS = 30_000;
+/** 气泡热力 / 大盘视图的轮询间隔（毫秒；与市场总览「市场宽度」轮询同频）。
+ * 仅在「气泡展开 && 对应视图激活」期间运行，收起 / 切走即停 */
+const VIEW_POLL_MS = 30_000;
 
 /**
  * 任务栏盯盘小组件插件定义
@@ -75,9 +80,9 @@ const HEATMAP_POLL_MS = 30_000;
 export const watchWidgetPlugin: PluginDefinition = {
   id: 'dsh-watch-widget',
   name: '任务栏盯盘小组件',
-  version: '1.1.0',
+  version: '1.2.0',
   description:
-    '在 Windows 任务栏上方常驻一个置顶盯盘迷你条（设置里三态选择，默认关：关闭 / 常驻 / 智能开启，智能开启仅交易日盘中显示）：轮播自选盯盘标的的名称 / 现价 / 涨跌幅，阈值触发带提示点；单击迷你条展开气泡看全部候选，点气泡里的标的（或双击迷你条当前标的）自动唤起主窗口并打开该股详情页（左侧列表即盯盘候选）。支持常驻显示 / 鼠标离开自动隐藏两种模式；仅桌面端，迷你条自身不产生任何行情请求。',
+    '在 Windows 任务栏上方常驻一个置顶盯盘迷你条（设置里三态选择，默认关：关闭 / 常驻 / 智能开启，智能开启仅交易日盘中显示）：轮播自选盯盘标的的名称 / 现价 / 涨跌幅，阈值触发带提示点；单击迷你条展开气泡看全部候选，头部图标在「自选盯盘 → 板块热力 → 大盘走势（上证 / 深证 / 创业板指 / 恒生）」间循环切换，均仅展示无交互；点气泡里的标的（或双击迷你条当前标的）自动唤起主窗口并打开该股详情页（左侧列表即盯盘候选）。支持常驻显示 / 鼠标离开自动隐藏两种模式；仅桌面端，热力与指数数据由宿主 app:market 服务在对应视图激活期间低频拉取，迷你条自身不产生任何行情请求。',
   author: '内置',
   inject: ['watch:repo', 'watch:monitor'],
   apply: async (ctx) => {
@@ -109,7 +114,7 @@ export const watchWidgetPlugin: PluginDefinition = {
     }
     // 浮窗服务由宿主提供；缺失时降级为只记日志（与盯盘引擎同一处理）
     const notify = ctx.consume('app:notify');
-    // 市场剖面服务**可选消费**（旧宿主无 app:market 时热力视图降级空态，不影响盯盘条）
+    // 市场剖面服务**可选消费**（旧宿主无 app:market 时热力 / 大盘视图降级空态，不影响盯盘条）
     const market = ctx.consume('app:market');
 
     /** 监控中的候选（候选池 ∩ 自选股，与顶栏轮播同一口径） */
@@ -166,18 +171,56 @@ export const watchWidgetPlugin: PluginDefinition = {
       ),
     );
 
-    // ---------- 气泡热力视图（市场总览「板块热力」迷你版，Top N 板块） ----------
+    // ---------- 气泡热力 / 大盘视图（市场剖面迷你版，数据走 app:market 可选消费） ----------
     /** 气泡当前内容视图（渲染端切换 / 挂载时经 popover-view 事件上报） */
     let popoverView: WatchWidgetPopoverView = WATCH_WIDGET_POPOVER_VIEW.LIST;
     /** 最近一次成功拉取的热力板块快照（失败时保留旧值，气泡不闪空） */
     let heatBoards: WatchWidgetHeatmapBoard[] = [];
-    /** 热力轮询定时器（undefined = 未在轮询） */
-    let heatTimer: number | undefined;
+    /** 最近一次成功拉取的大盘指数快照（失败时保留旧值，气泡不闪空） */
+    let indexRows: WatchWidgetIndexRow[] = [];
+    /** 视图数据轮询定时器（undefined = 未在轮询） */
+    let viewPollTimer: number | undefined;
+    /** 当前轮询会话已拉取的视图（同一会话内切视图要立即换数据源，不等下一个 tick） */
+    let fetchedView: WatchWidgetPopoverView | null = null;
 
     /** 把热力快照推给气泡窗口 */
     const pushHeatmap = (): void => {
       if (!popoverWindow) return;
       void emit(WATCH_WIDGET_EVENTS.HEATMAP, { boards: heatBoards });
+    };
+
+    /** 把大盘指数快照推给气泡窗口 */
+    const pushIndexes = (): void => {
+      if (!popoverWindow) return;
+      void emit(WATCH_WIDGET_EVENTS.INDEXES, { indexes: indexRows });
+    };
+
+    /**
+     * 造大盘指数行：点位 / 涨跌幅文案与涨跌语气全部走宿主 `app:format`
+     * （口径只有宿主一份，与候选列表行同构；上游缺失条目按空态留给渲染端兜底）
+     */
+    const buildIndexRows = (quotes: readonly MarketIndexQuote[]): WatchWidgetIndexRow[] =>
+      quotes.map((quote) => {
+        const changePercent = quote.changePercent;
+        return {
+          code: quote.code,
+          name: quote.name,
+          price: format.price(quote.price),
+          percent: format.percent(changePercent),
+          tone: WATCH_MARQUEE_TONE_BY_TREND[format.trend(changePercent ?? 0)],
+        };
+      });
+
+    /** 拉一次大盘指数快照（东财 ulist 单次请求）→ 归一为载荷并推送 */
+    const fetchIndexes = async (): Promise<void> => {
+      if (!market) return;
+      try {
+        const quotes = await market.fetchIndexQuotes();
+        indexRows = buildIndexRows(quotes);
+        pushIndexes();
+      } catch (error) {
+        ctx.logger.warn(`大盘指数拉取失败（气泡保留旧数据）：${String(error)}`);
+      }
     };
 
     /** 拉一次行业板块 → 按总市值取 Top N → 归一为热力载荷并推送 */
@@ -200,22 +243,36 @@ export const watchWidgetPlugin: PluginDefinition = {
       }
     };
 
+    /** 按当前气泡视图拉取对应数据（轮询定时器回调 / 展开即拉共用） */
+    const fetchForView = (view: WatchWidgetPopoverView): void => {
+      if (view === WATCH_WIDGET_POPOVER_VIEW.HEATMAP) void fetchHeatmap();
+      else if (view === WATCH_WIDGET_POPOVER_VIEW.MARKET) void fetchIndexes();
+    };
+
     /**
-     * 轮询门控：仅「气泡展开 && 热力视图激活 && 宿主有 app:market」时运行。
+     * 轮询门控：仅「气泡展开 && 热力 / 大盘视图激活 && 宿主有 app:market」时运行。
      * 气泡收起、切回列表、插件销毁都会停表，不给上游留常驻请求。
+     * 同一会话内热力 ⇄ 大盘互切：定时器不重建，但立即拉一次新视图的数据
+     * （否则要等下一个 30s tick 才有数据，切换瞬间气泡还挂着上一个视图的旧内容）。
      */
-    const syncHeatPolling = (): void => {
+    const syncViewPolling = (): void => {
       const shouldPoll =
         popoverVisible &&
         popoverWindow !== null &&
         market !== undefined &&
-        popoverView === WATCH_WIDGET_POPOVER_VIEW.HEATMAP;
-      if (shouldPoll && heatTimer === undefined) {
-        void fetchHeatmap();
-        heatTimer = window.setInterval(() => void fetchHeatmap(), HEATMAP_POLL_MS);
-      } else if (!shouldPoll && heatTimer !== undefined) {
-        window.clearInterval(heatTimer);
-        heatTimer = undefined;
+        (popoverView === WATCH_WIDGET_POPOVER_VIEW.HEATMAP ||
+          popoverView === WATCH_WIDGET_POPOVER_VIEW.MARKET);
+      if (shouldPoll && viewPollTimer === undefined) {
+        fetchedView = popoverView;
+        fetchForView(popoverView);
+        viewPollTimer = window.setInterval(() => fetchForView(popoverView), VIEW_POLL_MS);
+      } else if (shouldPoll && popoverView !== fetchedView) {
+        fetchedView = popoverView;
+        fetchForView(popoverView);
+      } else if (!shouldPoll && viewPollTimer !== undefined) {
+        window.clearInterval(viewPollTimer);
+        viewPollTimer = undefined;
+        fetchedView = null;
       }
     };
 
@@ -228,14 +285,14 @@ export const watchWidgetPlugin: PluginDefinition = {
       popoverRect = await getWindowRect(popoverWindow);
       await popoverWindow.show().catch(() => undefined);
       popoverVisible = true;
-      syncHeatPolling();
+      syncViewPolling();
     };
 
     const hidePopover = async (): Promise<void> => {
       if (!popoverWindow || !popoverVisible) return;
       await popoverWindow.hide().catch(() => undefined);
       popoverVisible = false;
-      syncHeatPolling();
+      syncViewPolling();
     };
 
     const togglePopover = async (): Promise<void> => {
@@ -262,7 +319,7 @@ export const watchWidgetPlugin: PluginDefinition = {
         barRect = null;
         revealZone = null;
       }
-      syncHeatPolling();
+      syncViewPolling();
     };
 
     const ensureBar = async (): Promise<void> => {
@@ -350,17 +407,20 @@ export const watchWidgetPlugin: PluginDefinition = {
       await listen(WATCH_WIDGET_EVENTS.REQUEST, () => {
         pushLines();
         pushHeatmap();
+        pushIndexes();
       }),
     );
     unlistens.push(
       await listen<WatchWidgetPopoverViewPayload>(WATCH_WIDGET_EVENTS.POPOVER_VIEW, (event) => {
         const view = event.payload?.view;
-        if (view !== WATCH_WIDGET_POPOVER_VIEW.LIST && view !== WATCH_WIDGET_POPOVER_VIEW.HEATMAP) {
-          return;
-        }
+        const isValid =
+          view === WATCH_WIDGET_POPOVER_VIEW.LIST ||
+          view === WATCH_WIDGET_POPOVER_VIEW.HEATMAP ||
+          view === WATCH_WIDGET_POPOVER_VIEW.MARKET;
+        if (!isValid) return;
         popoverView = view;
-        syncHeatPolling();
-        // 展开中按新视图重算尺寸（热力 ⇄ 列表互切会改变窗口高度与落点）
+        syncViewPolling();
+        // 展开中按新视图重算尺寸（三视图互切会改变窗口高度与落点）
         const popover = popoverWindow;
         const bar = barWindow;
         if (popoverVisible && popover && bar) {
@@ -473,7 +533,7 @@ export const watchWidgetPlugin: PluginDefinition = {
     ctx.onDispose(() => {
       window.clearInterval(cursorTimer);
       if (settleTimer) window.clearTimeout(settleTimer);
-      if (heatTimer !== undefined) window.clearInterval(heatTimer);
+      if (viewPollTimer !== undefined) window.clearInterval(viewPollTimer);
       for (const unlisten of unlistens) unlisten();
       void destroyWindows();
     });

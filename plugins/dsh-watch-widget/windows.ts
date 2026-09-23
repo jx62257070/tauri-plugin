@@ -27,6 +27,7 @@ import {
   WATCH_WIDGET_POPOVER_HEADER_HEIGHT,
   WATCH_WIDGET_POPOVER_HEATMAP_ROWS,
   WATCH_WIDGET_POPOVER_LABEL,
+  WATCH_WIDGET_POPOVER_MARKET_ROWS,
   WATCH_WIDGET_POPOVER_MAX_ROWS,
   WATCH_WIDGET_POPOVER_ROW_HEIGHT,
   WATCH_WIDGET_POPOVER_VIEW,
@@ -245,10 +246,11 @@ export interface PopoverLayout {
  * 拆成独立纯查询函数：`positionPopover`（展开时，含尺寸）与
  * `movePopoverToBar`（拖动跟随，只平移不改尺寸）共用同一份几何口径，
  * 保证两条路径算出的落点一致。
- * 高度按内容视图区分：列表视图按行数（封顶 MAX_ROWS），热力视图为固定等效行数
- * （`WATCH_WIDGET_POPOVER_HEATMAP_ROWS`，与候选行数解耦）。
+ * 高度按内容视图区分：列表视图按行数（封顶 MAX_ROWS），热力 / 大盘视图为固定
+ * 等效行数（`WATCH_WIDGET_POPOVER_HEATMAP_ROWS` / `WATCH_WIDGET_POPOVER_MARKET_ROWS`，
+ * 与候选行数解耦）。
  * @param bar 盯盘条窗口（定位基准）
- * @param rowCount 当前行数（列表视图决定气泡高度，封顶 MAX_ROWS；热力视图忽略）
+ * @param rowCount 当前行数（列表视图决定气泡高度，封顶 MAX_ROWS；热力 / 大盘视图忽略）
  * @param view 气泡内容视图（缺省列表，老调用兼容）
  * @returns 气泡布局
  */
@@ -265,7 +267,9 @@ export const computePopoverLayout = async (
   const rows =
     view === WATCH_WIDGET_POPOVER_VIEW.HEATMAP
       ? WATCH_WIDGET_POPOVER_HEATMAP_ROWS
-      : Math.min(Math.max(rowCount, 1), WATCH_WIDGET_POPOVER_MAX_ROWS);
+      : view === WATCH_WIDGET_POPOVER_VIEW.MARKET
+        ? WATCH_WIDGET_POPOVER_MARKET_ROWS
+        : Math.min(Math.max(rowCount, 1), WATCH_WIDGET_POPOVER_MAX_ROWS);
   const logicalHeight =
     WATCH_WIDGET_POPOVER_HEADER_HEIGHT +
     rows * WATCH_WIDGET_POPOVER_ROW_HEIGHT +
