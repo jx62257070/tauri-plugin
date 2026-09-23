@@ -25,15 +25,18 @@ import {
   WATCH_WIDGET_POPOVER_FOOTER_PADDING,
   WATCH_WIDGET_POPOVER_GAP,
   WATCH_WIDGET_POPOVER_HEADER_HEIGHT,
+  WATCH_WIDGET_POPOVER_HEATMAP_ROWS,
   WATCH_WIDGET_POPOVER_LABEL,
   WATCH_WIDGET_POPOVER_MAX_ROWS,
   WATCH_WIDGET_POPOVER_ROW_HEIGHT,
+  WATCH_WIDGET_POPOVER_VIEW,
   WATCH_WIDGET_POPOVER_WIDTH,
   WATCH_WIDGET_POPOVER_WINDOW_URL,
   WATCH_WIDGET_TASKBAR_FALLBACK,
   WATCH_WIDGET_WINDOW_LABEL,
   WATCH_WIDGET_WINDOW_URL,
 } from '../../host/plugins/watch-widget/constants';
+import type { WatchWidgetPopoverView } from '../../host/types/watch-widget.types';
 
 /** 物理像素矩形（窗口位置 / 尺寸 / 鼠标热区统一用这个形态） */
 export interface PhysicalRect {
@@ -242,20 +245,27 @@ export interface PopoverLayout {
  * 拆成独立纯查询函数：`positionPopover`（展开时，含尺寸）与
  * `movePopoverToBar`（拖动跟随，只平移不改尺寸）共用同一份几何口径，
  * 保证两条路径算出的落点一致。
+ * 高度按内容视图区分：列表视图按行数（封顶 MAX_ROWS），热力视图为固定等效行数
+ * （`WATCH_WIDGET_POPOVER_HEATMAP_ROWS`，与候选行数解耦）。
  * @param bar 盯盘条窗口（定位基准）
- * @param rowCount 当前行数（决定气泡高度，封顶 MAX_ROWS）
+ * @param rowCount 当前行数（列表视图决定气泡高度，封顶 MAX_ROWS；热力视图忽略）
+ * @param view 气泡内容视图（缺省列表，老调用兼容）
  * @returns 气泡布局
  */
 export const computePopoverLayout = async (
   bar: WebviewWindow,
   rowCount: number,
+  view: WatchWidgetPopoverView = WATCH_WIDGET_POPOVER_VIEW.LIST,
 ): Promise<PopoverLayout> => {
   const [barPosition, barSize, scaleFactor] = await Promise.all([
     bar.outerPosition(),
     bar.outerSize(),
     bar.scaleFactor(),
   ]);
-  const rows = Math.min(Math.max(rowCount, 1), WATCH_WIDGET_POPOVER_MAX_ROWS);
+  const rows =
+    view === WATCH_WIDGET_POPOVER_VIEW.HEATMAP
+      ? WATCH_WIDGET_POPOVER_HEATMAP_ROWS
+      : Math.min(Math.max(rowCount, 1), WATCH_WIDGET_POPOVER_MAX_ROWS);
   const logicalHeight =
     WATCH_WIDGET_POPOVER_HEADER_HEIGHT +
     rows * WATCH_WIDGET_POPOVER_ROW_HEIGHT +
@@ -268,17 +278,19 @@ export const computePopoverLayout = async (
 };
 
 /**
- * 把气泡定位到盯盘条正上方（右对齐），并按行数设定尺寸（展开时用）
+ * 把气泡定位到盯盘条正上方（右对齐），并按视图 / 行数设定尺寸（展开时用）
  * @param popover 气泡窗口
  * @param bar 盯盘条窗口（定位基准）
- * @param rowCount 当前行数（决定气泡高度，封顶 MAX_ROWS）
+ * @param rowCount 当前行数（列表视图决定气泡高度；热力视图忽略）
+ * @param view 气泡内容视图（缺省列表，老调用兼容）
  */
 export const positionPopover = async (
   popover: WebviewWindow,
   bar: WebviewWindow,
   rowCount: number,
+  view: WatchWidgetPopoverView = WATCH_WIDGET_POPOVER_VIEW.LIST,
 ): Promise<void> => {
-  const layout = await computePopoverLayout(bar, rowCount);
+  const layout = await computePopoverLayout(bar, rowCount, view);
   await popover.setSize(new LogicalSize(WATCH_WIDGET_POPOVER_WIDTH, layout.logicalHeight));
   await popover.setPosition(new PhysicalPosition(layout.x, layout.y));
 };
@@ -287,13 +299,15 @@ export const positionPopover = async (
  * 拖动跟随：把气泡平移到盯盘条正上方（不改尺寸；条拖动期间高频调用）
  * @param popover 气泡窗口
  * @param bar 盯盘条窗口（定位基准）
- * @param rowCount 当前行数（跟随期间行数不变，仅用于几何口径一致）
+ * @param rowCount 当前行数（跟随期间行数不变，仅用于几何口径一致；热力视图忽略）
+ * @param view 气泡内容视图（仅影响几何口径一致性，跟随只平移）
  */
 export const movePopoverToBar = async (
   popover: WebviewWindow,
   bar: WebviewWindow,
   rowCount: number,
+  view: WatchWidgetPopoverView = WATCH_WIDGET_POPOVER_VIEW.LIST,
 ): Promise<void> => {
-  const layout = await computePopoverLayout(bar, rowCount);
+  const layout = await computePopoverLayout(bar, rowCount, view);
   await popover.setPosition(new PhysicalPosition(layout.x, layout.y));
 };

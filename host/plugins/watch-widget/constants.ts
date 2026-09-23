@@ -51,6 +51,28 @@ export const WATCH_WIDGET_POPOVER_FOOTER_PADDING = 6;
 /** 气泡最大行数（超出部分列表内滚动） */
 export const WATCH_WIDGET_POPOVER_MAX_ROWS = 12;
 
+/**
+ * 气泡热力视图的等效行数（高度计算口径：总高 = 头部 40 + 5×34 + 底部 6 = 216）
+ *
+ * 热力视图展示 Top N 板块的迷你 treemap，高度与候选行数解耦 ——
+ * 主窗口按此常量钳制布局高度，渲染端热力区净高 = 216 - 40 - 6 = 170
+ */
+export const WATCH_WIDGET_POPOVER_HEATMAP_ROWS = 5;
+
+/** 气泡热力视图展示的板块数量（按总市值排序取前 N，与市场总览板块热力同口径） */
+export const WATCH_WIDGET_POPOVER_HEATMAP_TOP_N = 10;
+
+/**
+ * 气泡内容视图（禁 enum：const 对象 + types/watch-widget.types.ts 派生类型）
+ *
+ * list = 候选列表（默认）；heatmap = 板块热力（市场总览「板块热力」迷你版，
+ * 仅展示无交互）。视图状态归渲染端持有，切换时经 popover-view 事件上报主窗口。
+ */
+export const WATCH_WIDGET_POPOVER_VIEW = {
+  LIST: 'list',
+  HEATMAP: 'heatmap',
+} as const;
+
 /** 气泡与条的间距（逻辑像素） */
 export const WATCH_WIDGET_POPOVER_GAP = 6;
 
@@ -86,6 +108,10 @@ export const WATCH_WIDGET_EVENTS = {
   REQUEST: 'watch-widget://request',
   /** 盯盘条 → 主窗口：切换气泡显隐（气泡「收起」按钮同走此事件） */
   POPOVER_TOGGLE: 'watch-widget://popover-toggle',
+  /** 气泡 → 主窗口：气泡内容视图切换（挂载时也上报一次，主窗口据此计算窗口高度） */
+  POPOVER_VIEW: 'watch-widget://popover-view',
+  /** 主窗口 → 气泡：板块热力快照（Top N，市场总览板块热力同口径；拉取成功才推送） */
+  HEATMAP: 'watch-widget://heatmap',
   /** 盯盘条 → 主窗口：条被拖动（实时携带物理坐标；主窗口负责气泡跟随与落点记忆） */
   BAR_MOVED: 'watch-widget://bar-moved',
   /** 条 / 气泡 → 主窗口：打开某只股票（唤起主窗口 + 跳详情页，左列=盯盘候选） */

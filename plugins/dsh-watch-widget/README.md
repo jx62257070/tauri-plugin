@@ -6,16 +6,19 @@
 
 - 三态电源（宿主设置页配置）：**关闭** / **常驻** / **智能开启**（仅交易日盘中 9:30-15:00 显示，盘前、盘后、节假日自动隐藏）
 - 迷你条轮播候选的名称 / 现价 / 涨跌幅，阈值触发带提示点
-- 单击迷你条展开气泡看全部候选；点标的（或双击迷你条当前标的）自动唤起主窗口并打开该股详情页（左侧列表 = 盯盘候选）
+- 单击迷你条展开气泡看全部候选；气泡头部 flame 图标一键切换「板块热力」视图——市场总览同口径的行业板块 Top 10 迷你热力图（面积 = 总市值，颜色 = 涨跌语义色，仅展示无交互），窗口高度随视图自动切换
+- 点标的（或双击迷你条当前标的）自动唤起主窗口并打开该股详情页（左侧列表 = 盯盘候选）
 - 显示模式：常驻显示 / 鼠标离开自动隐藏（移到屏幕右下角热区唤回），拖动位置会记住
 - 主题实时跟随（明暗 / 主题色 / 涨跌配色）
 
 ## 依赖
 
 - **dsh-sidebar-watch ≥ 1.4.0**（必须先装）：`inject: ['watch:repo', 'watch:monitor']`，复用同一份盯盘候选池与报价引擎，本插件自身不产生任何行情请求
-- 宿主服务：`app:watchlist` / `app:stock-open` / `app:market-status` / `app:watch-widget-settings` / `app:theme` / `app:format` / `app:notify`
+- 宿主服务：`app:watchlist` / `app:stock-open` / `app:market-status` / `app:watch-widget-settings` / `app:theme` / `app:format` / `app:notify`；`app:market` 为**可选**（缺失时热力视图空态降级，其余功能不受影响）
 - 仅 Windows 桌面端（Tauri）；浏览器端静默跳过。窗口渲染端是宿主 `src/widget/` 独立轻量入口（`watch-widget.html`），不属于本插件产物
 
 ## 架构
 
 主窗口侧（本产物）只负责：条 / 气泡两个无边框置顶窗口的生灭与定位、快照推送（Tauri 事件）、摸鱼显隐（光标轮询）、拖动落点记忆（回写 `app:watch-widget-settings`）。小组件窗口是纯渲染端，只有事件通道。
+
+「板块热力」数据路径：气泡视图切换 / 挂载时经 `watch-widget://popover-view` 上报视图 → 本插件仅在「气泡展开 && 热力视图激活」期间以 30s 轮询宿主 `app:market.fetchIndustryBoards()`（东财行业板块，与市场总览同口径）→ 按总市值取 Top 10 经 `watch-widget://heatmap` 推送；气泡收起 / 切回列表即停，不给上游留常驻请求。

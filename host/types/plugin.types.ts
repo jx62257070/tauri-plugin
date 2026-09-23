@@ -856,11 +856,30 @@ export interface LimitUpPoolMember {
 }
 
 /**
+ * 行业板块轻量快照（`app:market` 的 `fetchIndustryBoards` 返回项）
+ *
+ * 从 `IndustryBoard` 挑字段映射而来（与 `LimitUpPoolMember` 同款做法）：
+ * 只承诺插件真正消费的字段，上游字段漂移不穿透到插件。
+ */
+export interface IndustryBoardSnapshot {
+  /** 板块代码（BK1027 形态） */
+  code: string;
+  /** 板块名称 */
+  name: string;
+  /** 涨跌幅（百分数；上游未给时为 null） */
+  changePercent: number | null;
+  /** 总市值（元；上游未给时为 null） */
+  totalMarketCap: number | null;
+}
+
+/**
  * 市场级行情服务（`app:market`）
  *
  * 成交总额 / 涨停池这类**市场剖面**数据：取数口径固定在宿主这一侧，
  * 插件各自找源只会各说各话（不同源的指数样本、复权与停牌处理并不一致）。
- * 两者均为重量级网络请求：**只能由用户点击触发，不要轮询**。
+ * 前两者为重量级网络请求：**只能由用户点击触发，不要轮询**。
+ * `fetchIndustryBoards` 是单页 clist 轻接口，允许「小组件热力视图激活期间」
+ * 这类短窗口低频轮询（见 §5.10）。
  */
 export interface MarketService {
   /**
@@ -874,6 +893,11 @@ export interface MarketService {
    * @returns 池子成员（上游对过早日期返回空数组）
    */
   fetchLimitUpPool: (date?: string) => Promise<LimitUpPoolMember[]>;
+  /**
+   * 全部行业板块（东财源，与市场总览板块热力同源同口径）
+   * @returns 全量行业板块（调用方自行排序 / 截取 Top N）
+   */
+  fetchIndustryBoards: () => Promise<IndustryBoardSnapshot[]>;
 }
 
 /**
@@ -1075,7 +1099,7 @@ export interface WatchWidgetSettingsService {
   /** 配置快照（响应式；宿主设置页改动即更新） */
   settings: Readonly<Ref<WatchWidgetSettings>>;
   /**
-   * 局部更新配置（与宿主设置页同一落库出口；浏览器端 only-read 字段变化无效）
+   * 局部更新配置（与宿主设置页同一落库出口）
    * @param patch 配置增量（电源 / 显示模式 / 隐藏延时 / 拖动位置）
    */
   set: (patch: Partial<WatchWidgetSettings>) => void;

@@ -1,4 +1,8 @@
-import type { WatchWidgetMode, WatchWidgetPower } from '../constants/watch-widget.constants';
+import type {
+  WatchWidgetMode,
+  WatchWidgetPower,
+} from '../constants/watch-widget.constants';
+import type { WATCH_WIDGET_POPOVER_VIEW } from '../plugins/watch-widget/constants';
 import type { ThemeColor } from '../constants/theme-color.constants';
 import type { TrendTheme } from '../constants/trend-theme.constants';
 import type { HeaderMarqueeTone } from './plugin.types';
@@ -57,4 +61,30 @@ export interface WatchWidgetSettings {
   hideDelaySec: number;
   /** 用户拖动后的位置（物理像素；null = 每次停靠到任务栏右上角） */
   position: WatchWidgetPosition | null;
+}
+
+/** 气泡内容视图（list 候选列表 / heatmap 板块热力） */
+export type WatchWidgetPopoverView =
+  (typeof WATCH_WIDGET_POPOVER_VIEW)[keyof typeof WATCH_WIDGET_POPOVER_VIEW];
+
+/** `popover-view` 事件载荷（气泡 → 主窗口：视图切换 / 挂载自报） */
+export interface WatchWidgetPopoverViewPayload {
+  /** 切换后的视图 */
+  view: WatchWidgetPopoverView;
+}
+
+/** 热力视图单板块数据（主窗口推送，已按总市值排序取 Top N） */
+export interface WatchWidgetHeatmapBoard {
+  /** 板块名称 */
+  name: string;
+  /** 涨跌幅（百分数；主窗口侧已把 null 归一为 0） */
+  changePercent: number;
+  /** 总市值（元，treemap 面积权重；主窗口侧已把 null 归一为 0） */
+  totalMarketCap: number;
+}
+
+/** `heatmap` 事件载荷（主窗口 → 气泡：板块热力快照） */
+export interface WatchWidgetHeatmapPayload {
+  /** Top N 板块（空数组 = 暂无数据） */
+  boards: WatchWidgetHeatmapBoard[];
 }

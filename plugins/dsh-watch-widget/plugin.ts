@@ -37,9 +37,16 @@ import {
   WATCH_WIDGET_MOVE_SETTLE_MS,
   WATCH_WIDGET_NOTIFY_SOURCE,
   WATCH_WIDGET_POPOVER_FOLLOW_INTERVAL_MS,
+  WATCH_WIDGET_POPOVER_HEATMAP_TOP_N,
+  WATCH_WIDGET_POPOVER_VIEW,
   WATCH_WIDGET_POPOVER_WIDTH,
   WATCH_WIDGET_REVEAL_ZONE,
 } from '../../host/plugins/watch-widget/constants';
+import type {
+  WatchWidgetHeatmapBoard,
+  WatchWidgetPopoverView,
+  WatchWidgetPopoverViewPayload,
+} from '../../host/types/watch-widget.types';
 import { buildWatchContextList, buildWatchWidgetRows } from './presenter';
 import {
   getWorkArea,
@@ -58,13 +65,17 @@ const MISSING_SERVICES_HINT =
   '宿主未提供 app:watchlist / app:stock-open / app:market-status / '
   + 'app:watch-widget-settings / app:theme / app:format 服务';
 
+/** 气泡热力视图的板块轮询间隔（毫秒；与市场总览「市场宽度」轮询同频）。
+ * 仅在「气泡展开 && 热力视图激活」期间运行，收起 / 切回列表即停 */
+const HEATMAP_POLL_MS = 30_000;
+
 /**
  * 任务栏盯盘小组件插件定义
  */
 export const watchWidgetPlugin: PluginDefinition = {
   id: 'dsh-watch-widget',
   name: '任务栏盯盘小组件',
-  version: '1.0.0',
+  version: '1.1.0',
   description:
     '在 Windows 任务栏上方常驻一个置顶盯盘迷你条（设置里三态选择，默认关：关闭 / 常驻 / 智能开启，智能开启仅交易日盘中显示）：轮播自选盯盘标的的名称 / 现价 / 涨跌幅，阈值触发带提示点；单击迷你条展开气泡看全部候选，点气泡里的标的（或双击迷你条当前标的）自动唤起主窗口并打开该股详情页（左侧列表即盯盘候选）。支持常驻显示 / 鼠标离开自动隐藏两种模式；仅桌面端，迷你条自身不产生任何行情请求。',
   author: '内置',
@@ -98,6 +109,8 @@ export const watchWidgetPlugin: PluginDefinition = {
     }
     // 浮窗服务由宿主提供；缺失时降级为只记日志（与盯盘引擎同一处理）
     const notify = ctx.consume('app:notify');
+    // 市场剖面服务**可选消费**（旧宿主无 app:market 时热力视图降级空态，不影响盯盘条）
+    const market = ctx.consume('app:market');
 
     /** 监控中的候选（候选池 ∩ 自选股，与顶栏轮播同一口径） */
     const candidates = computed(() =>
@@ -153,21 +166,76 @@ export const watchWidgetPlugin: PluginDefinition = {
       ),
     );
 
+    // ---------- 气泡热力视图（市场总览「板块热力」迷你版，Top N 板块） ----------
+    /** 气泡当前内容视图（渲染端切换 / 挂载时经 popover-view 事件上报） */
+    let popoverView: WatchWidgetPopoverView = WATCH_WIDGET_POPOVER_VIEW.LIST;
+    /** 最近一次成功拉取的热力板块快照（失败时保留旧值，气泡不闪空） */
+    let heatBoards: WatchWidgetHeatmapBoard[] = [];
+    /** 热力轮询定时器（undefined = 未在轮询） */
+    let heatTimer: number | undefined;
+
+    /** 把热力快照推给气泡窗口 */
+    const pushHeatmap = (): void => {
+      if (!popoverWindow) return;
+      void emit(WATCH_WIDGET_EVENTS.HEATMAP, { boards: heatBoards });
+    };
+
+    /** 拉一次行业板块 → 按总市值取 Top N → 归一为热力载荷并推送 */
+    const fetchHeatmap = async (): Promise<void> => {
+      if (!market) return;
+      try {
+        const boards = await market.fetchIndustryBoards();
+        heatBoards = boards
+          .filter((board) => board.changePercent !== null && board.totalMarketCap !== null)
+          .sort((a, b) => (b.totalMarketCap ?? 0) - (a.totalMarketCap ?? 0))
+          .slice(0, WATCH_WIDGET_POPOVER_HEATMAP_TOP_N)
+          .map((board) => ({
+            name: board.name,
+            changePercent: board.changePercent ?? 0,
+            totalMarketCap: board.totalMarketCap ?? 0,
+          }));
+        pushHeatmap();
+      } catch (error) {
+        ctx.logger.warn(`板块热力拉取失败（气泡保留旧数据）：${String(error)}`);
+      }
+    };
+
+    /**
+     * 轮询门控：仅「气泡展开 && 热力视图激活 && 宿主有 app:market」时运行。
+     * 气泡收起、切回列表、插件销毁都会停表，不给上游留常驻请求。
+     */
+    const syncHeatPolling = (): void => {
+      const shouldPoll =
+        popoverVisible &&
+        popoverWindow !== null &&
+        market !== undefined &&
+        popoverView === WATCH_WIDGET_POPOVER_VIEW.HEATMAP;
+      if (shouldPoll && heatTimer === undefined) {
+        void fetchHeatmap();
+        heatTimer = window.setInterval(() => void fetchHeatmap(), HEATMAP_POLL_MS);
+      } else if (!shouldPoll && heatTimer !== undefined) {
+        window.clearInterval(heatTimer);
+        heatTimer = undefined;
+      }
+    };
+
     // ---------- 气泡（单例窗口，隐藏复用） ----------
     const showPopover = async (): Promise<void> => {
       if (!barWindow) return;
       if (!popoverWindow) popoverWindow = await openPopoverWindow();
       if (!popoverWindow) return;
-      await positionPopover(popoverWindow, barWindow, rows.value.length);
+      await positionPopover(popoverWindow, barWindow, rows.value.length, popoverView);
       popoverRect = await getWindowRect(popoverWindow);
       await popoverWindow.show().catch(() => undefined);
       popoverVisible = true;
+      syncHeatPolling();
     };
 
     const hidePopover = async (): Promise<void> => {
       if (!popoverWindow || !popoverVisible) return;
       await popoverWindow.hide().catch(() => undefined);
       popoverVisible = false;
+      syncHeatPolling();
     };
 
     const togglePopover = async (): Promise<void> => {
@@ -194,6 +262,7 @@ export const watchWidgetPlugin: PluginDefinition = {
         barRect = null;
         revealZone = null;
       }
+      syncHeatPolling();
     };
 
     const ensureBar = async (): Promise<void> => {
@@ -280,6 +349,27 @@ export const watchWidgetPlugin: PluginDefinition = {
     unlistens.push(
       await listen(WATCH_WIDGET_EVENTS.REQUEST, () => {
         pushLines();
+        pushHeatmap();
+      }),
+    );
+    unlistens.push(
+      await listen<WatchWidgetPopoverViewPayload>(WATCH_WIDGET_EVENTS.POPOVER_VIEW, (event) => {
+        const view = event.payload?.view;
+        if (view !== WATCH_WIDGET_POPOVER_VIEW.LIST && view !== WATCH_WIDGET_POPOVER_VIEW.HEATMAP) {
+          return;
+        }
+        popoverView = view;
+        syncHeatPolling();
+        // 展开中按新视图重算尺寸（热力 ⇄ 列表互切会改变窗口高度与落点）
+        const popover = popoverWindow;
+        const bar = barWindow;
+        if (popoverVisible && popover && bar) {
+          void positionPopover(popover, bar, rows.value.length, view).then(() =>
+            getWindowRect(popover).then((rect) => {
+              popoverRect = rect;
+            }),
+          );
+        }
       }),
     );
     unlistens.push(
@@ -306,7 +396,7 @@ export const watchWidgetPlugin: PluginDefinition = {
           now - lastFollowAt >= WATCH_WIDGET_POPOVER_FOLLOW_INTERVAL_MS
         ) {
           lastFollowAt = now;
-          void movePopoverToBar(popoverLive, barLive, rows.value.length).then(() =>
+          void movePopoverToBar(popoverLive, barLive, rows.value.length, popoverView).then(() =>
             getWindowRect(popoverLive).then((rect) => {
               popoverRect = rect;
             }),
@@ -321,7 +411,7 @@ export const watchWidgetPlugin: PluginDefinition = {
           const popover = popoverWindow;
           const bar = barWindow;
           if (popoverVisible && popover && bar) {
-            void positionPopover(popover, bar, rows.value.length).then(() =>
+            void positionPopover(popover, bar, rows.value.length, popoverView).then(() =>
               getWindowRect(popover).then((rect) => {
                 popoverRect = rect;
               }),
@@ -383,6 +473,7 @@ export const watchWidgetPlugin: PluginDefinition = {
     ctx.onDispose(() => {
       window.clearInterval(cursorTimer);
       if (settleTimer) window.clearTimeout(settleTimer);
+      if (heatTimer !== undefined) window.clearInterval(heatTimer);
       for (const unlisten of unlistens) unlisten();
       void destroyWindows();
     });

@@ -30,7 +30,7 @@ export const WATCH_WIDGET_POWER = {
 /** 小组件三态电源类型 */
 export type WatchWidgetPower = (typeof WATCH_WIDGET_POWER)[keyof typeof WATCH_WIDGET_POWER];
 
-/** 小组件三态电源默认值（默认关闭，用户在设置里显式选择） */
+/** 三态电源默认值（默认关闭，用户在设置里显式选择） */
 export const WATCH_WIDGET_POWER_DEFAULT: WatchWidgetPower = WATCH_WIDGET_POWER.OFF;
 
 /** 小组件插件的注册 id（设置页按它查内核运行时状态，联动显隐设置项） */
