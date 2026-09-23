@@ -52,7 +52,7 @@ tauri-plugin/
 │  ├─ release-notes.mjs        生成 Release 说明正文（版本 / 体积 / 文件名都从清单与产物读出）
 │  ├─ sync-host-contract.mjs   从 WHF 股票看板同步类型快照
 │  └─ lib/plugin-classes.mjs   安装包用到的 Tailwind 类 → 样式类白名单
-└─ plugins-dist/          安装包 zip（已入库，插件工坊里导入的就是它）
+└─ plugins-dist/          本地构建产物（不入库）；正式安装包从 GitHub Release 下载
 ```
 
 ## 构建与开发
