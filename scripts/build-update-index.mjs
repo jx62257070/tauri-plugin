@@ -16,6 +16,9 @@
  *   缺失直接抛错 —— 产出一份没有 tag 的坏清单比什么都不产出更糟。
  * - **sha256 是可选语义**：有就算（能发现下载截断 / 资产被换），清单里没有就跳过，
  *   旧清单与手写清单照样可用。
+ * - **changelog 从 README 的「## 版本记录」表格抽**（见 `lib/plugin-changelog.mjs`）：
+ *   主 app 在确认弹窗里直接渲染它，抽不到就抛错中止 —— 一份没有说明的更新清单，
+ *   和一份 zip 直链 404 的清单同样不可用。
  *
  * 产出文件由 CI 随 zip 一起 `gh release upload`（见 .github/workflows/release.yml）。
  */
@@ -23,6 +26,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { DIST, ROOT, collectPackageRows } from './lib/plugin-rows.mjs';
+import { readPluginChangelog } from './lib/plugin-changelog.mjs';
 
 /** 清单契约版本（主 app 读到非 1 视为不可用；将来改结构时 +1） */
 const SCHEMA_VERSION = 1;
@@ -39,8 +43,8 @@ const INDEX_FILE = path.join(DIST, 'index.json');
 /** stdout 里 sha256 只打印前几位（全串太长，够肉眼比对即可） */
 const SHA256_PREVIEW_LENGTH = 8;
 
-/** 本次更新说明（一期固定空串：字段先留着，CI 二期从 Release 正文抽） */
-const CHANGELOG_PLACEHOLDER = '';
+/** stdout 里更新说明只打印前几个字（够肉眼确认不是空串、没抽错插件即可） */
+const CHANGELOG_PREVIEW_LENGTH = 20;
 
 /**
  * 取本次 Release 的 tag
@@ -122,7 +126,7 @@ const buildIndex = () => {
       zipSize: row.bytes,
       sha256: sha256Of(row.zipFile),
       downloadUrl: downloadUrlOf(repo, tag, row.zipName),
-      changelog: CHANGELOG_PLACEHOLDER,
+      changelog: readPluginChangelog(row.id, row.version),
     };
   });
   return {
@@ -143,10 +147,13 @@ const main = () => {
 
   process.stdout.write(`更新清单已生成：${path.relative(ROOT, INDEX_FILE)}\n`);
   for (const plugin of index.plugins) {
+    const preview = plugin.changelog.slice(0, CHANGELOG_PREVIEW_LENGTH);
     process.stdout.write(
       `  ✓ ${plugin.id} v${plugin.version} → ${plugin.zipName}`
       + `（${(plugin.zipSize / 1024).toFixed(1)} KB）`
-      + `sha256=${plugin.sha256.slice(0, SHA256_PREVIEW_LENGTH)}…\n`,
+      + `sha256=${plugin.sha256.slice(0, SHA256_PREVIEW_LENGTH)}… `
+      // 说明也打出来：CI 日志里能一眼看出有没有抽空，不必下载 index.json 去看
+      + `说明=${preview}${preview.length < plugin.changelog.length ? '…' : ''}\n`,
     );
   }
   process.stdout.write(

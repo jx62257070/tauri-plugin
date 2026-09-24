@@ -16,8 +16,8 @@ import { fileURLToPath } from 'node:url';
 /** 仓库根目录（本文件在 scripts/lib/ 下，故回退两级） */
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-/** 插件源码目录 */
-const PLUGINS = path.join(ROOT, 'plugins');
+/** 插件源码目录（README 抽取等派生逻辑也按它定位，故导出） */
+export const PLUGINS = path.join(ROOT, 'plugins');
 
 /** 打包产物目录（与 scripts/build-plugins.mjs 的 DIST 一致） */
 export const DIST = path.join(ROOT, 'plugins-dist');
