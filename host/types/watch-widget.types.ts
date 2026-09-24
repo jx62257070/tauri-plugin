@@ -98,7 +98,7 @@ export interface WatchWidgetHeatmapPayload {
 export interface WatchWidgetIndexRow {
   /** 指数代码（上游原值，仅作渲染 key） */
   code: string;
-  /** 指数名称（上证指数 / 深证成指 / 创业板指 / 恒生指数） */
+  /** 指数名称 */
   name: string;
   /** 最新点位文案（无报价时 `--`） */
   price: string;
@@ -110,6 +110,6 @@ export interface WatchWidgetIndexRow {
 
 /** `indexes` 事件载荷（主窗口 → 气泡：大盘指数快照） */
 export interface WatchWidgetIndexesPayload {
-  /** 四指数行（空数组 = 暂无数据） */
+  /** 指数行（空数组 = 暂无数据） */
   indexes: WatchWidgetIndexRow[];
 }

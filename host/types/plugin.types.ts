@@ -876,12 +876,12 @@ export interface IndustryBoardSnapshot {
  * 指数轻量快照（`app:market` 的 `fetchIndexQuotes` 返回项）
  *
  * 与 `GlobalIndexQuote` 同源（东财 ulist），但只暴露小组件「大盘走势」真正
- * 消费的四个字段；顺序即调用方展示顺序（上证 / 深证 / 创业板指 / 恒生）。
+ * 消费的字段；顺序即调用方展示顺序（A 股 4 个在前、海外 6 个在后）。
  */
 export interface MarketIndexQuote {
   /** 指数代码（上游原值，如 000001 / HSI；仅作渲染 key，不做归一化承诺） */
   code: string;
-  /** 指数名称（上证指数 / 深证成指 / 创业板指 / 恒生指数） */
+  /** 指数名称 */
   name: string;
   /** 最新点位（上游未给时为 null） */
   price: number | null;
@@ -917,8 +917,8 @@ export interface MarketService {
    */
   fetchIndustryBoards: () => Promise<IndustryBoardSnapshot[]>;
   /**
-   * 小组件「大盘走势」的四个指数快照（东财 ulist 单次请求）
-   * @returns 上证指数 / 深证成指 / 创业板指 / 恒生指数（顺序即展示顺序；
+   * 小组件「大盘走势」的指数快照（市场总览同款 10 指数，双源 allSettled）
+   * @returns 指数报价列表（A 股 4 + 海外 6，失败一路自动缺省；
    * 上游对个别 secid 缺数据时该条目不出现，调用方按空态兜底）
    */
   fetchIndexQuotes: () => Promise<MarketIndexQuote[]>;

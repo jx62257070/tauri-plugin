@@ -63,17 +63,19 @@ export const WATCH_WIDGET_POPOVER_HEATMAP_ROWS = 5;
 export const WATCH_WIDGET_POPOVER_HEATMAP_TOP_N = 10;
 
 /**
- * 气泡大盘视图的等效行数（高度计算口径：总高 = 头部 40 + 4×34 + 底部 6 = 182）
+ * 气泡大盘视图的等效行数（高度计算口径：总高 = 头部 40 + 10×34 + 底部 6 = 386）
  *
- * 大盘视图展示上证 / 深证 / 创业板指 / 恒生四个指数行，高度同样与候选行数解耦
+ * 大盘视图展示市场总览同款 10 个指数行（A 股 4 + 海外 6，见
+ * `fetchWidgetIndexQuotes`），高度同样与候选行数解耦。海外指数走东财 ulist，
+ * 上游通道异常时缺失即缺行——窗口高度按满行 10 钳制，缺行时气泡底部留白。
  */
-export const WATCH_WIDGET_POPOVER_MARKET_ROWS = 4;
+export const WATCH_WIDGET_POPOVER_MARKET_ROWS = 10;
 
 /**
  * 气泡内容视图（禁 enum：const 对象 + types/watch-widget.types.ts 派生类型）
  *
  * list = 候选列表（默认）；heatmap = 板块热力（市场总览「板块热力」迷你版，
- * 仅展示无交互）；market = 大盘走势（上证 / 深证 / 创业板指 / 恒生四指数行情）。
+ * 仅展示无交互）；market = 大盘走势（市场总览同款 10 指数行情）。
  * 视图状态归渲染端持有，切换时经 popover-view 事件上报主窗口；头部图标按
  * list → heatmap → market 循环切换。
  */

@@ -5,10 +5,12 @@
  * 写岔任何一边，窗口都会**静默失联**（Tauri 建窗不会因 404 失败，只会浮出一块白窗）。
  * 改这里必须同步改宿主渲染端那一份 —— 这是事件协议的一部分，不是实现细节。
  *
- * 为什么**内化**到插件目录而不是继续引用 `host/` 快照：那三份 watch-widget 文件
- * （`host/plugins/watch-widget/constants.ts`、`host/constants/watch-widget.constants.ts`、
- * `host/types/watch-widget.types.ts`）在当前主 app 工作树里并不存在，下一次 `pnpm sync:host`
- * 就会把它们删掉。依赖它们等于把房子盖在随时会塌的地基上，所以字面量搬来、一个字不改。
+ * 为什么**内化**到插件目录而不是继续引用 `host/` 快照：`pnpm sync:host` 默认从主 app
+ * **本地工作树**取快照，而工作树常停在未合入小组件渲染端的 dev 分支（如 dev-csj-20260916），
+ * 一跑就会把 `host/` 里那三份 watch-widget 文件删掉。依赖它们等于把房子盖在随时会塌的
+ * 地基上，所以字面量内化到这里、一个字跟着宿主走；契约以主 app **main 分支**为准，
+ * 核对方式：`git archive <main 的 sha> src -o 快照.tar` 解到临时目录后
+ * `node scripts/sync-host-contract.mjs --host <临时目录>`（不要直接拿 dev 工作树跑）。
  */
 
 // ---------- 窗口 ----------
@@ -70,11 +72,13 @@ export const WATCH_WIDGET_POPOVER_HEATMAP_ROWS = 5;
 export const WATCH_WIDGET_POPOVER_HEATMAP_TOP_N = 10;
 
 /**
- * 气泡大盘视图的等效行数（高度计算口径：总高 = 头部 40 + 4×34 + 底部 6 = 182）
+ * 气泡大盘视图的等效行数（高度计算口径：总高 = 头部 40 + 10×34 + 底部 6 = 386）
  *
- * 大盘视图展示上证 / 深证 / 创业板指 / 恒生四个指数行，高度同样与候选行数解耦
+ * 大盘视图展示市场总览同款 10 个指数行（A 股 4 + 海外 6，见宿主 `fetchWidgetIndexQuotes`），
+ * 高度同样与候选行数解耦。海外指数走东财 ulist，上游通道异常时缺失即缺行——
+ * 窗口高度按满行 10 钳制，缺行时气泡底部留白。
  */
-export const WATCH_WIDGET_POPOVER_MARKET_ROWS = 4;
+export const WATCH_WIDGET_POPOVER_MARKET_ROWS = 10;
 
 /**
  * 气泡内容视图（禁 enum：const 对象 + widget/types.ts 派生类型）
@@ -129,7 +133,7 @@ export const WATCH_WIDGET_EVENTS = {
   POPOVER_VIEW: 'watch-widget://popover-view',
   /** 主窗口 → 气泡：板块热力快照（Top N，市场总览板块热力同口径；拉取成功才推送） */
   HEATMAP: 'watch-widget://heatmap',
-  /** 主窗口 → 气泡：大盘指数快照（上证 / 深证 / 创业板指 / 恒生；拉取成功才推送） */
+  /** 主窗口 → 气泡：大盘指数快照（市场总览同款 10 指数，缺行即缺行；拉取成功才推送） */
   INDEXES: 'watch-widget://indexes',
   /** 盯盘条 → 主窗口：条被拖动（实时携带物理坐标；主窗口负责气泡跟随与落点记忆） */
   BAR_MOVED: 'watch-widget://bar-moved',

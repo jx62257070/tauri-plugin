@@ -59,7 +59,7 @@ export interface WatchWidgetHeatmapBoard {
 export interface WatchWidgetIndexRow {
   /** 指数代码（上游原值，仅作渲染 key） */
   code: string;
-  /** 指数名称（上证指数 / 深证成指 / 创业板指 / 恒生指数） */
+  /** 指数名称（A 股 4 个在前、海外 6 个在后，名称由宿主快照给出） */
   name: string;
   /** 最新点位文案（无报价时 `--`） */
   price: string;
