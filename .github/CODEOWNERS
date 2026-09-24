@@ -1,0 +1,11 @@
+# 代码所有者：所有变更都必须由下面两人之一批准才能合并
+#
+# 配合分支保护的 `Require review from Code Owners` 生效：
+# GitHub 对**个人仓库**不支持「限制谁可以 push 到保护分支」（该能力只对组织仓库提供），
+# 能把「谁能批准合并」精确到人的就只有 CODEOWNERS 这一条路。
+#
+# 与发版权限是同一批人：见 .github/workflows/release.yml 里 environment: release
+# （该 environment 的 required reviewers 也是这两人），
+# 即「能合并 master/dev 的人」==「能发版的人」。
+
+* @jx62257070 @WHF293
