@@ -17,12 +17,14 @@ WHF 股票看板本身只保留插件内核与开放能力（贡献点、`ctx.*`
 
 ## 插件清单
 
-| 插件 id | 名称 | 版本 | 说明 | 直达 |
-| --- | --- | --- | --- | --- |
-| `dsh-mainline` | 股票主线 | 1.0.0 | 板块抱团主线四阶段（萌芽 / 确认 / 狂热 / 瓦解）判定，只给阶段与风险提示 | [说明](./plugins/dsh-mainline/README.md) |
-| `dsh-dividend-screen` | 股息筛选 | 1.0.0 | 按股息率 / 分红连续性筛样本，叠加今年推算股息率，表格列可配置 | [说明](./plugins/dsh-dividend-screen/README.md) |
-| `dsh-quick-note` | 速记 | 1.1.0 | 侧栏抽屉随手记，可关联个股；对外提供 `note:repo` 服务 | [说明](./plugins/dsh-quick-note/README.md) |
-| `dsh-sidebar-watch` | 自选盯盘 | 2.0.0 | 顶栏轮播 + 到价 / 涨跌幅提醒，候选池与盯盘引擎可被其他插件复用；含任务栏小组件（可选，默认开启） | [说明](./plugins/dsh-sidebar-watch/README.md) |
+当前版本与更新内容以 [Release 页面](https://github.com/jx62257070/tauri-plugin/releases) 为准（插件源码里的 `manifest.json` 是版本的事实源，README 不重复维护版本号）。
+
+| 插件 id | 名称 | 说明 | 说明文档 |
+| --- | --- | --- | --- |
+| `dsh-mainline` | 股票主线 | 板块抱团主线四阶段（萌芽 / 确认 / 狂热 / 瓦解）判定，只给阶段与风险提示 | [说明](./plugins/dsh-mainline/README.md) |
+| `dsh-dividend-screen` | 股息筛选 | 按股息率 / 分红连续性筛样本，叠加今年推算股息率，表格列可配置 | [说明](./plugins/dsh-dividend-screen/README.md) |
+| `dsh-quick-note` | 速记 | 侧栏抽屉随手记，可关联个股；对外提供 `note:repo` 服务 | [说明](./plugins/dsh-quick-note/README.md) |
+| `dsh-sidebar-watch` | 自选盯盘 | 顶栏轮播 + 到价 / 涨跌幅提醒，候选池与盯盘引擎可被其他插件复用；含任务栏小组件（可选，默认开启） | [说明](./plugins/dsh-sidebar-watch/README.md) |
 
 ## 安装方式
 
@@ -31,13 +33,13 @@ WHF 股票看板本身只保留插件内核与开放能力（贡献点、`ctx.*`
 **从 Release 下载（正式渠道）：**
 
 1. 打开 [Release 页面](https://github.com/jx62257070/tauri-plugin/releases)，挑你要的插件；
-2. **每个插件一个 zip**，按需下载即可，不必全下（文件名形如 `dsh-quick-note-1.1.0.zip`）；
+2. **每个插件一个 zip**，按需下载即可，不必全下（文件名形如 `dsh-quick-note-<版本>.zip`）；
 3. 打开应用，进入「插件工坊」（应用内的插件管理入口），选择「导入插件」，选中刚下载的 zip；
 4. 导入后启用，插件入口立即出现在应用里（菜单 / 顶栏 / 侧栏 / 个股详情等，各插件位置见其说明）。
 
 Release 说明里列着每个插件的版本、一句话说明、安装包文件名与体积，照着挑就行。
 
-**用本地构建产物：** 也可以导入 `plugins-dist/` 下对应插件的 zip（例如 `plugins-dist/dsh-quick-note-1.1.0.zip`）—— 那是 `pnpm build` 出来的**本地构建产物**，正式分发走上面的 Release 资产。
+**用本地构建产物：** 也可以导入 `plugins-dist/` 下对应插件的 zip（例如 `plugins-dist/dsh-quick-note-<版本>.zip`）—— 那是 `pnpm build` 出来的**本地构建产物**，正式分发走上面的 Release 资产。
 
 卸载：在「插件工坊」里对该插件点卸载。卸载时应用会询问是否一并删除该插件的本地数据表，选「保留」则下次重新安装仍能看到历史数据。
 

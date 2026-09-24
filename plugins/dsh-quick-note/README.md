@@ -1,6 +1,6 @@
 # 速记（dsh-quick-note）
 
-安装包文件名：`dsh-quick-note-1.1.0.zip`
+安装包从 [GitHub Release](https://github.com/jx62257070/tauri-plugin/releases) 下载，文件名形如 `dsh-quick-note-<版本>.zip`（版本以 Release 页面为准）。
 
 一句话：左侧栏底部多一个「速记」入口（抽屉形态），随手记一条、随写随存，还能关联一只股票 —— 关联过的速记会自动出现在**这只股票的个股详情**里。
 
@@ -23,7 +23,7 @@
 前置：已安装 **[WHF 股票看板](https://github.com/WHF293/whf-stock-board)**。
 
 1. 打开应用，进入「插件工坊」（应用内的插件管理入口）；
-2. 选择「导入插件」，选中 `dsh-quick-note-1.1.0.zip`；
+2. 选择「导入插件」，选中刚下载的 zip 安装包；
 3. 导入后启用，左侧栏底部会出现「速记」入口。
 
 卸载：在「插件工坊」里对该插件点卸载，应用会询问是否一并删除本地数据表。

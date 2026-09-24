@@ -1,6 +1,6 @@
 # 自选盯盘（dsh-sidebar-watch）
 
-安装包文件名：`dsh-sidebar-watch-2.1.0.zip`
+安装包从 [GitHub Release](https://github.com/jx62257070/tauri-plugin/releases) 下载，文件名形如 `dsh-sidebar-watch-<版本>.zip`（版本以 Release 页面为准）。
 
 一句话：顶栏常驻一个**盯盘入口** —— 收起态是一条轮播（逐条滚动候选的名称 / 现价 / 涨跌幅），点开是完整清单。盯盘要的是「一眼扫到」，不长期占侧栏版面。
 
@@ -34,7 +34,7 @@
 前置：已安装 **[WHF 股票看板](https://github.com/WHF293/whf-stock-board)**。
 
 1. 打开应用，进入「插件工坊」（应用内的插件管理入口）；
-2. 选择「导入插件」，选中 `dsh-sidebar-watch-2.1.0.zip`；
+2. 选择「导入插件」，选中刚下载的 zip 安装包；
 3. 导入后启用，顶栏会出现盯盘入口。
 
 卸载：在「插件工坊」里对该插件点卸载，应用会询问是否一并删除本地数据表。
