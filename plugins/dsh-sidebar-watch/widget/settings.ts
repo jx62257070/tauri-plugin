@@ -50,7 +50,7 @@ export const LEGACY_WATCH_WIDGET_PLUGIN_ID = 'dsh-watch-widget';
 const POWER_OPTIONS: readonly PluginSettingFieldOption[] = [
   { value: WATCH_WIDGET_POWER.OFF, label: '关闭' },
   { value: WATCH_WIDGET_POWER.ALWAYS, label: '常驻显示' },
-  { value: WATCH_WIDGET_POWER.SMART, label: '智能开启（仅交易日盘中）' },
+  { value: WATCH_WIDGET_POWER.SMART, label: '智能开启（交易日 09:00-15:00）' },
 ];
 
 /** 显示模式选项（默认常驻：首次开启先让用户看见，摸鱼隐藏由用户显式选择） */
@@ -75,7 +75,7 @@ export const WIDGET_SETTINGS_SECTION: PluginSettingsDeclaration = {
     {
       key: WIDGET_SETTING_KEYS.POWER,
       label: '小浮窗',
-      description: '常驻 / 智能开启（仅交易日盘中显示）/ 关闭；默认常驻',
+      description: '常驻 / 智能开启（交易日 09:00-15:00 显示）/ 关闭；默认常驻',
       type: 'select',
       default: WATCH_WIDGET_POWER_DEFAULT,
       options: POWER_OPTIONS,
