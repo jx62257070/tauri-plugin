@@ -20,6 +20,7 @@
     "@commitlint/cli": "^20.2.0",
     "@commitlint/config-conventional": "^20.2.0",
     "@eslint/js": "^10.0.1",
+    "@tauri-apps/api": "^2.11.1",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "eslint": "^10.10.0",

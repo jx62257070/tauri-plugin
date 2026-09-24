@@ -12,12 +12,15 @@
  * 因此「卸载插件」等价于「把它的所有贡献抹掉」，不需要为插件写专门的反向逻辑。
  */
 import type * as Vue from 'vue';
-import type { Component } from 'vue';
+import type { Component, Ref } from 'vue';
 import type { Trend } from '../constants/trend.constants';
+import type { ThemeColor } from '../constants/theme-color.constants';
+import type { TrendTheme } from '../constants/trend-theme.constants';
 import type { BuiltinMcpServer } from '../agent/mcp/types';
 import type { NotifyService } from './notify.types';
 import type { PollingOptions, PollingScheduler } from './polling.types';
 import type { FullQuote, SearchResult } from './stock-quote.types';
+import type { WatchWidgetSettings } from './watch-widget.types';
 import type { HEADER_MARQUEE_TONE, PLUGIN_ORIGIN, PLUGIN_STATUS } from '../constants/plugin.constants';
 
 /** 可逆副作用句柄：调用 `dispose()` 撤销一次注册（幂等） */
@@ -853,11 +856,48 @@ export interface LimitUpPoolMember {
 }
 
 /**
+ * 行业板块轻量快照（`app:market` 的 `fetchIndustryBoards` 返回项）
+ *
+ * 从 `IndustryBoard` 挑字段映射而来（与 `LimitUpPoolMember` 同款做法）：
+ * 只承诺插件真正消费的字段，上游字段漂移不穿透到插件。
+ */
+export interface IndustryBoardSnapshot {
+  /** 板块代码（BK1027 形态） */
+  code: string;
+  /** 板块名称 */
+  name: string;
+  /** 涨跌幅（百分数；上游未给时为 null） */
+  changePercent: number | null;
+  /** 总市值（元；上游未给时为 null） */
+  totalMarketCap: number | null;
+}
+
+/**
+ * 指数轻量快照（`app:market` 的 `fetchIndexQuotes` 返回项）
+ *
+ * 与 `GlobalIndexQuote` 同源（东财 ulist），但只暴露小组件「大盘走势」真正
+ * 消费的四个字段；顺序即调用方展示顺序（上证 / 深证 / 创业板指 / 恒生）。
+ */
+export interface MarketIndexQuote {
+  /** 指数代码（上游原值，如 000001 / HSI；仅作渲染 key，不做归一化承诺） */
+  code: string;
+  /** 指数名称（上证指数 / 深证成指 / 创业板指 / 恒生指数） */
+  name: string;
+  /** 最新点位（上游未给时为 null） */
+  price: number | null;
+  /** 涨跌幅（百分数；上游未给时为 null） */
+  changePercent: number | null;
+}
+
+/**
  * 市场级行情服务（`app:market`）
  *
  * 成交总额 / 涨停池这类**市场剖面**数据：取数口径固定在宿主这一侧，
  * 插件各自找源只会各说各话（不同源的指数样本、复权与停牌处理并不一致）。
- * 两者均为重量级网络请求：**只能由用户点击触发，不要轮询**。
+ * 前两者为重量级网络请求：**只能由用户点击触发，不要轮询**。
+ * `fetchIndustryBoards` 是单页 clist 轻接口，允许「小组件热力视图激活期间」
+ * 这类短窗口低频轮询（见 §5.10）；`fetchIndexQuotes` 同理，允许「小组件大盘
+ * 视图激活期间」30s 级低频轮询（东财 ulist 精确 secid 单次请求）。
  */
 export interface MarketService {
   /**
@@ -871,6 +911,17 @@ export interface MarketService {
    * @returns 池子成员（上游对过早日期返回空数组）
    */
   fetchLimitUpPool: (date?: string) => Promise<LimitUpPoolMember[]>;
+  /**
+   * 全部行业板块（东财源，与市场总览板块热力同源同口径）
+   * @returns 全量行业板块（调用方自行排序 / 截取 Top N）
+   */
+  fetchIndustryBoards: () => Promise<IndustryBoardSnapshot[]>;
+  /**
+   * 小组件「大盘走势」的四个指数快照（东财 ulist 单次请求）
+   * @returns 上证指数 / 深证成指 / 创业板指 / 恒生指数（顺序即展示顺序；
+   * 上游对个别 secid 缺数据时该条目不出现，调用方按空态兜底）
+   */
+  fetchIndexQuotes: () => Promise<MarketIndexQuote[]>;
 }
 
 /**
@@ -1049,6 +1100,50 @@ export interface FormatService {
   findQuote: (quotesMap: Record<string, FullQuote>, symbol: string) => FullQuote | undefined;
 }
 
+/**
+ * 市场状态服务（`app:market-status`）
+ *
+ * 市场开闭状态是宿主全站状态（交易日历 + 分钟级时钟），插件自己算必然分叉。
+ */
+export interface MarketStatusService {
+  /**
+   * 当前是否 A 股盘中（交易日 09:30-15:00，含午休；随宿主分钟级时钟响应式重算，
+   * 交易日历未就绪按周一~周五降级，日历恢复后自愈）
+   */
+  isIntraday: Readonly<Ref<boolean>>;
+}
+
+/**
+ * 任务栏小组件配置服务（`app:watch-widget-settings`）
+ *
+ * 配置 UI 在宿主设置页（含插件状态联动的显隐），数据归宿主 settings store 持久化；
+ * 插件端只读快照 + 回写窗口拖动位置，自身不落库。
+ */
+export interface WatchWidgetSettingsService {
+  /** 配置快照（响应式；宿主设置页改动即更新） */
+  settings: Readonly<Ref<WatchWidgetSettings>>;
+  /**
+   * 局部更新配置（与宿主设置页同一落库出口）
+   * @param patch 配置增量（电源 / 显示模式 / 隐藏延时 / 拖动位置）
+   */
+  set: (patch: Partial<WatchWidgetSettings>) => void;
+}
+
+/**
+ * 主题服务（`app:theme`）
+ *
+ * 明暗 / 主题色 / 涨跌配色的宿主实时快照：插件要往独立窗口同步主题
+ * （如任务栏小组件），自己读 storage 在 WebView2 跨窗口场景实测不可达。
+ */
+export interface ThemeService {
+  /** 是否暗色（跟随系统 + 用户偏好，与宿主 useDark 同源） */
+  isDark: Readonly<Ref<boolean>>;
+  /** 主题色 */
+  themeColor: Readonly<Ref<ThemeColor>>;
+  /** 涨跌配色 */
+  trendTheme: Readonly<Ref<TrendTheme>>;
+}
+
 /** 应用初始化之前约定：调整上述服务后同步 PLUGIN_API.md 与 AGENTS.md（见 §12） */
 export interface AppServiceMap {
   /** 应用版本号（内核挂载时自动提供，来源 APP_VERSION） */
@@ -1108,6 +1203,12 @@ export interface AppServiceMap {
   'app:market': MarketService;
   /** 格式化与涨跌语义（红涨绿跌、百分比、相对时间、符号互转、限速节拍） */
   'app:format': FormatService;
+  /** 市场状态：A 股盘中判定（交易日历 + 分钟级时钟，宿主唯一实现） */
+  'app:market-status': MarketStatusService;
+  /** 任务栏小组件配置（宿主设置页为 UI 与持久化归属，插件只读快照 + 回写位置） */
+  'app:watch-widget-settings': WatchWidgetSettingsService;
+  /** 主题实时快照（明暗 / 主题色 / 涨跌配色，供插件向独立窗口同步） */
+  'app:theme': ThemeService;
 }
 
 /** 内核运行时只读视图（供插件自省，不暴露挂载 / 卸载能力） */
@@ -1329,7 +1430,10 @@ export interface PluginDefinition {
   description: string;
   /** 作者（缺省「内置」） */
   author?: string;
-  /** 依赖的插件 id：任一未挂载则本插件停在「等待依赖」状态 */
+  /**
+   * 依赖声明（字符串既可为**插件 id** 也可为**服务名**，内核按「插件已挂载或服务已提供」判定就绪）：
+   * 任一未就绪则本插件停在「等待依赖」状态，提供方挂载 / provide 后自动续挂
+   */
   inject?: readonly string[];
   /** 插件配置（等价 dsh 的配置层：不改源码即可换实现 / 调参数） */
   config?: PluginConfig;

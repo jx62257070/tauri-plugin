@@ -50,7 +50,7 @@ const WATCH_HEADER_PANEL_KEY = `dsh-sidebar-watch#${WATCH_HEADER_ITEM_ID}`;
 export const sidebarWatchPlugin: PluginDefinition = {
   id: 'dsh-sidebar-watch',
   name: '自选盯盘',
-  version: '1.3.0',
+  version: '1.4.0',
   description:
     '顶栏常驻盯盘入口：收起态单条轮播候选的名称 / 现价 / 涨跌幅，点开是完整清单。在自选股「操作」列点「盯盘」逐只加入候选（候选与阈值存在插件自己的数据表里），可给每只票设价格 / 涨跌幅阈值，到价在右下角弹提醒；另附「打开自选股页」全局快捷键。',
   author: '内置',
@@ -96,6 +96,9 @@ export const sidebarWatchPlugin: PluginDefinition = {
     const monitor = createWatchMonitor({ repo, logger: ctx.logger, deps });
     // 引擎不在组件里，生命周期挂在插件上：卸载即停轮询、并清掉自己弹过的浮窗
     ctx.onDispose(() => monitor.stop());
+    // 引擎同样对外公开（1.4.0 起）：dsh-watch-widget 等消费方读同一份报价快照，
+    // 小组件不会自建第二份轮询
+    ctx.provide('watch:monitor', monitor);
 
     ctx.header.add({
       id: WATCH_HEADER_ITEM_ID,

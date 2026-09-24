@@ -22,7 +22,8 @@ WHF 股票看板本身只保留插件内核与开放能力（贡献点、`ctx.*`
 | `dsh-mainline` | 股票主线 | 1.0.0 | 板块抱团主线四阶段（萌芽 / 确认 / 狂热 / 瓦解）判定，只给阶段与风险提示 | [说明](./plugins/dsh-mainline/README.md) |
 | `dsh-dividend-screen` | 股息筛选 | 1.0.0 | 按股息率 / 分红连续性筛样本，叠加今年推算股息率，表格列可配置 | [说明](./plugins/dsh-dividend-screen/README.md) |
 | `dsh-quick-note` | 速记 | 1.1.0 | 侧栏抽屉随手记，可关联个股；对外提供 `note:repo` 服务 | [说明](./plugins/dsh-quick-note/README.md) |
-| `dsh-sidebar-watch` | 自选盯盘 | 1.3.0 | 顶栏轮播 + 到价 / 涨跌幅提醒，候选池可被其他插件复用 | [说明](./plugins/dsh-sidebar-watch/README.md) |
+| `dsh-sidebar-watch` | 自选盯盘 | 1.4.0 | 顶栏轮播 + 到价 / 涨跌幅提醒，候选池与盯盘引擎可被其他插件复用 | [说明](./plugins/dsh-sidebar-watch/README.md) |
+| `dsh-watch-widget` | 任务栏盯盘小组件 | 1.0.0 | Windows 任务栏上方置顶迷你条，轮询复用自选盯盘引擎；依赖 `dsh-sidebar-watch ≥ 1.4.0` | [说明](./plugins/dsh-watch-widget/README.md) |
 
 ## 安装方式
 

@@ -190,3 +190,13 @@ export const createWatchMonitor = (options: WatchMonitorDeps): WatchMonitor => {
     },
   };
 };
+
+// 把引擎服务登记进全局服务契约表（与 service.ts 的 watch:repo 同模式）。
+// dsh-watch-widget 等消费方 inject 这两个名字即可复用同一份候选池与引擎，
+// 不会出现「面板一份轮询、小组件又一份」的重复请求。
+declare module '../../host/types/plugin.types' {
+  interface AppServiceMap {
+    /** 盯盘引擎只读句柄（由 dsh-sidebar-watch 提供；报价快照经同一份轮询维护） */
+    'watch:monitor': WatchMonitor;
+  }
+}
