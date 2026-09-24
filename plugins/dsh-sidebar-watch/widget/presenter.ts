@@ -1,20 +1,20 @@
 /**
- * 插件 dsh-watch-widget · 展示载荷构造（纯函数）
+ * 插件 dsh-sidebar-watch · 小组件展示载荷构造（纯函数）
  *
- * 与 dsh-sidebar-watch 的 marquee.ts 同一思路：文案与口径一旦错了，
- * 小组件就是用户扫得最多的那行字，因此构造逻辑独立成纯函数、可被冒烟直跑。
+ * 与主体的 marquee.ts 同一思路：文案与口径一旦错了，小组件就是用户扫得最多的那行字，
+ * 因此构造逻辑独立成纯函数、可被冒烟直跑。
  * 数据全部来自主窗口既有盯盘引擎的快照 —— 小组件窗口自身不发任何上游请求。
  *
  * 格式化与符号归一化一律走宿主 `app:format`（口径只有宿主一份）；
  * 上下文列表的 symbol 交给 `app:stock-open` 宿主侧归一化，这里保持原样。
  */
-import { HEADER_MARQUEE_TONE } from '../../host/constants/plugin.constants';
-import { isAlertConfigured } from '../dsh-sidebar-watch/alerts';
-import { buildMarqueeLines } from '../dsh-sidebar-watch/marquee';
-import type { FormatService, StockContextItem } from '../../host/types/plugin.types';
-import type { WatchCandidate } from '../dsh-sidebar-watch/service';
-import type { WatchWidgetRow } from '../../host/types/watch-widget.types';
-import type { FullQuote } from '../../host/types/stock-quote.types';
+import { HEADER_MARQUEE_TONE } from '../../../host/constants/plugin.constants';
+import { isAlertConfigured } from '../alerts';
+import { buildMarqueeLines } from '../marquee';
+import type { FormatService, StockContextItem } from '../../../host/types/plugin.types';
+import type { WatchCandidate } from '../service';
+import type { WatchWidgetRow } from './types';
+import type { FullQuote } from '../../../host/types/stock-quote.types';
 
 /**
  * 构造小组件轮播行（顶栏轮播同一份口径：名称 + 现价 + 涨跌幅 + 语气）

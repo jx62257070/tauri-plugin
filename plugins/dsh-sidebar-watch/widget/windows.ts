@@ -1,5 +1,5 @@
 /**
- * 插件 dsh-watch-widget · 小组件窗口管理
+ * 插件 dsh-sidebar-watch · 小组件窗口管理
  *
  * 两个无边框置顶窗口（盯盘条 / 气泡）的创建、停靠定位与尺寸计算。
  * 这些函数只在**主窗口侧**调用：窗口操控类权限挂在主窗口的 capability 上，
@@ -10,8 +10,8 @@
  * 是**逻辑像素** —— 换算只发生在「逻辑尺寸 × 缩放比」这一处。
  *
  * 契约化说明：窗口常量（label / 尺寸 / URL）与渲染端（宿主 `src/widget/`）共享
- * 同一份事实源（宿主 `src/plugins/watch-widget/constants.ts`），经宿主契约快照
- * 引用 —— 事件名与 label 写岔任何一边，窗口就静默失联。
+ * 同一份事实源（本目录 `constants.ts`）—— 事件名与 label 写岔任何一边，
+ * 窗口就静默失联。
  */
 import { invoke } from '@tauri-apps/api/core';
 import { currentMonitor, primaryMonitor } from '@tauri-apps/api/window';
@@ -36,8 +36,8 @@ import {
   WATCH_WIDGET_TASKBAR_FALLBACK,
   WATCH_WIDGET_WINDOW_LABEL,
   WATCH_WIDGET_WINDOW_URL,
-} from '../../host/plugins/watch-widget/constants';
-import type { WatchWidgetPopoverView } from '../../host/types/watch-widget.types';
+} from './constants';
+import type { WatchWidgetPopoverView } from './types';
 
 /** 物理像素矩形（窗口位置 / 尺寸 / 鼠标热区统一用这个形态） */
 export interface PhysicalRect {
