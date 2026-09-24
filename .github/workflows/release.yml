@@ -38,6 +38,11 @@ jobs:
   release:
     name: 打包并发布 Release
     runs-on: ubuntu-latest
+    # 发版走 release 环境：该环境配了 required reviewers（jx62257070 / WHF293），
+    # 任何人触发本 workflow 都要等名单里的人批准才继续。
+    # 理由：GitHub 对个人仓库没有细分的 Release 权限（能 push 就能发版），
+    # 能单独给「发版」加一道卡的只有 environment。
+    environment: release
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
